@@ -1,19 +1,24 @@
-facebook:
-  label: Facebook
-  permalink: /facebook
-  description: Facebook tag description
+matrixos:
+  label: MatrixOS
+  permalink: /matrixos
+  description: MatrixOS tag description
 
-hello:
-  label: Hello
-  permalink: /hello
+mystrix:
+  label: Mystrix
+  permalink: /mystrix
   description: Hello tag description
 
-docusaurus:
-  label: Docusaurus
-  permalink: /docusaurus
-  description: Docusaurus tag description
+diy:
+  label: DIY
+  permalink: /diy
+  description: DIY tag description
 
-hola:
-  label: Hola
-  permalink: /hola
-  description: Hola tag description
+update:
+  label: Update
+  permalink: /update
+  description: Update tag description
+
+news:
+  label: News
+  permalink: /news
+  description: News tag description
