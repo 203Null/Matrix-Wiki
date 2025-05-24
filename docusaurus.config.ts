@@ -40,7 +40,7 @@ const config: Config = {
             'https://github.com/203-Systems/Matrix-Wiki/tree/master/',
           versions: {
               current: {
-                label: 'Canary 🚧',
+                label: 'Latest 🚧',
               },
             },
         },
@@ -53,7 +53,7 @@ const config: Config = {
           // Please change this to your repo.
           // Remove this to remove the "edit this page" links.
           editUrl:
-            'https://github.com/203-Systems/Matrix-Wiki/tree/main/',
+            'https://github.com/203-Systems/Matrix-Wiki/tree/master/',
           // Useful options to enforce blogging best practices
           onInlineTags: 'warn',
           onInlineAuthors: 'warn',
@@ -127,7 +127,7 @@ const config: Config = {
           position: 'left',
           label: 'Support',
         },
-        // {to: '/blog', label: 'Updates', position: 'left'},
+        {to: '/blog', label: 'Updates', position: 'left'},
         {
           type: 'docsVersionDropdown',
           position: 'right',
@@ -136,103 +136,7 @@ const config: Config = {
         // {
         //   type: 'localeDropdown',
         //   position: 'right',
-        // },
-        {
-          href: 'https://github.com/203-Systems',
-          position: 'right',
-          className: 'header-github-link',
-          'aria-label': 'GitHub repository',
-        },
-      ],
-    },
-    footer: {
-      style: 'dark',
-      links: [
-        {
-          title: 'Docs',
-          items: [
-            {
-              label: 'Mystrix',
-              to: 'docs/Mystrix/GettingStarted',
-            },
-            {
-              label: 'Matrix OS',
-              to: 'docs/MatrixOS/MatrixOSBasics',
-            },
-            {
-              label: 'Developer',
-              to: 'docs/Developer/MatrixOSBasics',
-            },
-            {
-              label: 'Resources',
-              to: 'docs/Resources/MystrixHardwareDesigns'
-            },
-            {
-              label: 'Support',
-              to: 'docs/Support/ConnectWithUs'
-            },
-            {
-              label: 'Backroom',
-              to: 'docs/Backroom'
-            }
-          ],
-        },
-        {
-          title: 'Community',
-          items: [
-            {
-              label: 'Discord',
-              href: 'https://discord.gg/rRVCBHHPfw',
-            },
-            {
-              label: 'Twitter / X',
-              href: 'https://twitter.com/203Systems',
-            },
-            {
-              label: 'Instagram',
-              href: 'https://instagram.com/203null',
-            },
-            {
-              label: 'Youtube',
-              href: 'https://www.youtube.com/channel/UCl9tL-r4NzvGl-EIeVYZZ-g',
-            },
-            {
-              label: 'Facebook',
-              href: 'https://facebook.com/203Systems',
-            }
-          ],
-        },
-        {
-          title: 'More',
-          items: [
-            {
-              label: '203 Systems',
-              to: 'https://203.io',
-            },
-            {
-              label: 'GitHub',
-              href: 'https://github.com/203-Systems',
-            },
-          ],
-        },
-      ],
-      logo: {
-        alt: '203 Systems',
-        src: 'img/203 systems long dark.svg',
-        href: 'https://203.io',
-        target: '_self',
-        style: {
-          maxWidth: 300,
-        },
-      },
-      copyright: `Copyright © ${new Date().getFullYear()} 203 Systems`,
-    },
-    // announcementBar: {
-    //   id: 'under-development',
-    //   content: `<b>🚧 Project Matrix Wiki is currently in development. Contents may be incorrect, incomplete, or outdated. 🚧</b>`,
-    // },
-    image: 'img/social-card.jpg',
-    algolia: {
+        content: `Sales of Mystrix have ended. Thank you for supporting Project Matrix! ❤️`,
       // The application ID provided by Algolia
       appId: 'NX86NL0BFF',
 
