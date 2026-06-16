@@ -233,7 +233,7 @@ export function SequencerView() {
 - Copy mode:
   - Tap a step with events to set the copy source.
   - Tap another step to copy events into it (supports cross-pattern copy).
-- Shift + tap a step with events opens step detial menu (only when not playing that track).
+- Shift + tap a step with events opens step detail menu (only when not playing that track).
 
 ### Note Pad
 
@@ -2083,13 +2083,13 @@ export function SequencerTwoPatternView() {
 
 ## Step Detail Menu
 
-- Event selector row (Y=0): choose an event in the step. Note events light in note color, aftertouch notes in a separate color.
+- Event selector row (Y=0): choose an event in the step. Note events light in note color, aftertouch notes in a separate color. With Clear active, tap an event to delete it.
 - Microstep row (Y=1, X0-5): move the selected event to one of six microstep slots.
-- Delete (Y=1, X7): remove the selected event.
+- Note/Aftertouch toggle (Y=1, X7): switch the selected note event between note and aftertouch.
 - Note event config:
-  - Toggle Note vs Aftertouch event.
   - Length selector (2 rows): tap to set, tap again to cycle partial lengths.
   - Velocity selector (2 rows): tap to set, tap again to cycle partial levels.
+- Clear + Step in Sequencer view deletes the selected step.
 - CC event config exists but is currently stubbed (no UI behavior yet).
 
 export function StepDetailMenu() {
@@ -2097,7 +2097,7 @@ export function StepDetailMenu() {
     const uiElements = [
     {
         "name": "Event Selector",
-        "desc": "Row of events in the selected step. Selected event highlights white.",
+        "desc": "Row of events in the selected step. Selected event highlights white.\n\nWith Clear active, tap an event to delete it.",
         "elements": [
             {
                 "pos": [0, 0],
@@ -2126,21 +2126,11 @@ export function StepDetailMenu() {
         ]
     },
     {
-        "name": "Delete Event",
-        "desc": "Remove the selected event.",
+        "name": "Note/Aftertouch Toggle",
+        "desc": "Switch the selected event between note and aftertouch.",
         "elements": [
             {
                 "pos": [7, 1],
-                "color": "#FF0000"
-            }
-        ]
-    },
-    {
-        "name": "Note/Aftertouch Toggle",
-        "desc": "Switch between note on and aftertouch events.",
-        "elements": [
-            {
-                "pos": [7, 2],
                 "color": "#FFFF00"
             }
         ]
@@ -2213,12 +2203,12 @@ export function StepDetailMenu() {
         ]
     },
     {
-        "name": "Clear (Not used)",
-        "desc": "Clear modifier for clips.",
+        "name": "Clear",
+        "desc": "Clear modifier.\n\nIn Step Detail, activate Clear and tap an event in the Event Selector row to delete that event.\n\nIn Sequencer view, Clear + Step deletes the selected step.",
         "elements": [
             {
                 "pos": [4, 7],
-                "color": "#A00060"
+                "color": "#FF0080"
             }
         ]
     },
@@ -2920,7 +2910,8 @@ export function ActionMenuUI() {
     },
     {
         "name": "Velocity Sensitivity",
-        "desc": "Toggle velocity sensitivity if supported.",
+        "desc": "Open velocity configuration for the active track.",
+        "link": "#velocity-config",
         "elements": [
             {
                 "pos": [7, 5],
@@ -2988,6 +2979,161 @@ export function ActionMenuUI() {
 }
 
 <ActionMenuUI />
+
+### Velocity Config
+
+The Velocity Config menu controls note velocity for the active track.
+
+- **Velocity** toggles pressure-based velocity for devices with a force-sensitive keypad.
+- When velocity sensitivity is enabled, live note input and recorded notes use the key press velocity from the keypad.
+- When velocity sensitivity is disabled, live note input and recorded notes use the track's configured **Default Velocity** instead.
+- **Default Velocity** can be set from 1 to 127 with the modifier row.
+- This setting is stored per track.
+
+export function VelocityConfigUI() {
+
+    const uiElements = [
+    {
+        "name": "Velocity",
+        "desc": "Toggle velocity sensitivity for the active track.\n\nOn supported devices, enabled velocity uses the keypad press velocity for live input and recorded notes.\n\nWhen disabled, notes use Default Velocity.",
+        "elements": [
+            {
+                "pos": [0, 0],
+                "color": "#00FFFF"
+            }
+        ]
+    },
+    {
+        "name": "Default Velocity",
+        "desc": "Shows the active track's fixed MIDI velocity value when velocity sensitivity is disabled. This example shows 127.",
+        "elements": [
+            {
+                "pos": [0, 2],
+                "size": [8, 4]
+            },
+            {
+                "pos": [1, 2],
+                "size": [1, 4],
+                "color": "#00FFFF"
+            },
+            {
+                "pos": [3, 2],
+                "size": [2, 4],
+                "color": "#FFFFFF"
+            },
+            {
+                "pos": [3, 3]
+            },
+            {
+                "pos": [4, 4]
+            },
+            {
+                "pos": [6, 2],
+                "size": [2, 1],
+                "color": "#00FFFF"
+            },
+            {
+                "pos": [7, 3],
+                "size": [1, 3],
+                "color": "#00FFFF"
+            }
+        ]
+    },
+    {
+        "name": "-16",
+        "desc": "Decrease Default Velocity by 16",
+        "elements": [
+            {
+                "pos": [0, 7],
+                "color": "#00FFFF"
+            }
+        ]
+    },
+    {
+        "name": "-8",
+        "desc": "Decrease Default Velocity by 8",
+        "elements": [
+            {
+                "pos": [1, 7],
+                "color": "#00D8D8"
+            }
+        ]
+    },
+    {
+        "name": "-4",
+        "desc": "Decrease Default Velocity by 4",
+        "elements": [
+            {
+                "pos": [2, 7],
+                "color": "#00B8B8"
+            }
+        ]
+    },
+    {
+        "name": "-1",
+        "desc": "Decrease Default Velocity by 1",
+        "elements": [
+            {
+                "pos": [3, 7],
+                "color": "#00A0A0"
+            }
+        ]
+    },
+    {
+        "name": "+1",
+        "desc": "Increase Default Velocity by 1",
+        "elements": [
+            {
+                "pos": [4, 7],
+                "color": "#00A0A0"
+            }
+        ]
+    },
+    {
+        "name": "+4",
+        "desc": "Increase Default Velocity by 4",
+        "elements": [
+            {
+                "pos": [5, 7],
+                "color": "#00B8B8"
+            }
+        ]
+    },
+    {
+        "name": "+8",
+        "desc": "Increase Default Velocity by 8",
+        "elements": [
+            {
+                "pos": [6, 7],
+                "color": "#00D8D8"
+            }
+        ]
+    },
+    {
+        "name": "+16",
+        "desc": "Increase Default Velocity by 16",
+        "elements": [
+            {
+                "pos": [7, 7],
+                "color": "#00FFFF"
+            }
+        ]
+    }
+];
+
+    const uiName = "Velocity Config"
+    const uiDescription = "Configure velocity sensitivity and default MIDI velocity for the active track"
+    const uiParentLink = "#action-menu"
+    return <MystrixVisualizer
+    uiName = {uiName}
+    uiDescription = {uiDescription}
+    uiElements = {uiElements}
+    uiParentLink = {uiParentLink}
+    />
+
+}
+
+<VelocityConfigUI />
 
 ### Save Sequence
 The center glyph have 3 states:

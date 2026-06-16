@@ -7,6 +7,41 @@ sidebar_position: 2
 ## Update Matrix
 For updating Matrix OS. See [Update Matrix OS](../Mystrix/UpdateMatrixOS)
 
+## Matrix OS 4.0 Beta
+*In development*
+
+### Developer Changes
+
+- **Python runtime**: The Python app uses Pythonic `snake_case` modules under `MatrixOS`.
+- **Input API**: `MatrixOS::Input` and `MatrixOS.Input` expose `InputId`, `InputCluster`, `InputEvent`, `InputSnapshot`, `KeypadInfo`, and capability queries for device-owned input mapping.
+- **C++ UI input handlers**: UI custom handlers now use `SetInputEventHandler` with `InputEvent*`. UI components receive `KeypadInfo*` for keypad events.
+- **Matrix OS Developer Toolkit**: Added a software-in-the-loop WebAssembly runtime with a WebUI for input, LED, MIDI, HID, serial, storage, Python, system, and log tooling.
+- **System Remote API**: Added foundation for command ACK replies, key identity reporting, and hardware bridge workflows.
+- **Developer APP**: Added a focused HID/SysEx protocol for live input reports, LED writes, and app-session control.
+- **FileSystem API**: File and filesystem calls were reshaped around sandboxed app paths, directory helpers, rename/list operations, and safer storage availability behavior.
+
+### Application Changes
+
+- **Python app**: Supports the Python REPL, standalone folder apps, filesystem integration, and packaged example apps.
+- **Custom Control Map**: Improved UAD upload/save/load reliability. Larger maps can use filesystem storage when device storage is available, while smaller maps continue to use NVS.
+- **Sequencer**: Improved sequence state safety, active clip persistence, queued clip launch timing, solo/mute priority, multi-solo workflow, UI edge cases, live BPM/swing application, step event detail behavior, and default velocity handling.
+- **Note**: Improved note map safety and velocity configuration migration.
+- **Performance**: Hardened SysEx handling and capped MIDI work per loop for better runtime stability.
+
+### Reliability
+
+- Improved SysEx receive frame sizing, reset behavior, and stalled receive timeout handling.
+- Improved app transition safety by suppressing stale active inputs during transitions.
+- Added filesystem sandbox path hardening and compile-safe stubs for builds without storage or TinyUSB.
+- Added multiple bounds checks around MIDI, HID, LED, Custom Control Map, and Performance command paths.
+
+### Developer Notes
+
+- Use `MatrixOS::Input` and `MatrixOS.Input` for input events and state.
+- Use `InputEvent` and `KeypadInfo` when handling keypad-class input.
+- Python public APIs use `snake_case`.
+- C++ UI custom handlers use `SetInputEventHandler`.
+
 ## Matrix OS 3.2 - Harmonic Trinity
 *Released: January 29th, 2026*
 
