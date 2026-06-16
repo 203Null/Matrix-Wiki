@@ -10,7 +10,7 @@ import DocLink from "@site/src/components/DocLink/DocLink";
 
 The UI framework provides a set of classes and utilities for creating interactive user interfaces (GUIs) on Matrix OS.
 
-*The header file for this framework is located in <GithubLink path="os/ui/UI.h"/> and the implementation is in <GithubLink path="os/ui/UI.cpp"/>.*
+*The header file for this framework is located in <GithubLink path="OS/UI/UI.h"/> and the implementation is in <GithubLink path="OS/UI/UI.cpp"/>.*
 
 ---
  
@@ -44,91 +44,43 @@ Optionally, you can customize the UI behavior by setting input event handlers, f
 
 ## Example
 
-Part of the Example app
+This example creates a small menu with one button. `AddUIComponent` takes a pointer, so keep component objects alive until `menu.Start()` returns.
+
 ```cpp
-// Create a UI Object
-  // UI Name, Color (as the text scroll color). and new led layer (Set as true, the UI will render on a new led layer. Persevere what was rendered before after UI exits)
-  UI menu("UI Menu", Color(0x00FFFF), true);
+void HelloNative::OpenMenu() {
+  UI menu("Menu", Color::Cyan, true);
 
-  // Create an UI element
-  UIButton numberSelector;
-  numberSelector.SetName("Number Selector");  // Name of this UI element
-  numberSelector.SetColor(Color(0xFF0000));  // Color of the UI element
-  numberSelector.OnPress([&]() -> void {     // Callback function when the button is pressed
-    number = MatrixOS::UIInterface::NumberSelector8x8(number, 0xFF0000, "Number", 0, 100);  // Current Number, color, low range, high range
-    // EXAMPLEAPP_SAVED_VAR does not affect this code
-    // For most value types, the saved variable wrapper library requires no changes to code!
-  });
-  // Add the UI element to the UI object to top left conner
-  menu.AddUIComponent(numberSelector, Point(0, 0));
-
-  // Create an dynamic colored button
-  UIButton colorSelector;
-  colorSelector.SetName("Color Selector");  // Name of this UI element
-  colorSelector.SetColorFunc([&]() -> Color { return color; });  // Use the color variable as the color of this UI element
-  colorSelector.OnPress([&]() -> void {  // Callback function when the button is pressed
-    #ifndef EXAMPLEAPP_SAVED_VAR
-    MatrixOS::UIInterface::ColorPicker(color);  // References to the color variable. The color variable will be updated by the ColorPicker function. Return true if color is changed, false if not.
-    #else
-    MatrixOS::UIInterface::ColorPicker(color.value);  // Get the actual value from the saved variable wrapper library
-    color.Set(color.value);  // Save the new variable
-    // The saved variable wrapper doesn't implicitly convert to the references type.
-    // This way you know you have to get the references manually and set the value back to the saved variable manually.
-    #endif
-  });
-  colorSelector.OnHold([&]() -> void {  // Optional Callback function for hold down. Reset color to default white.
-    color = 0xFFFFFF;
+  UIButton colorButton;
+  colorButton.SetName("Color");
+  colorButton.SetColorFunc([&]() -> Color { return color; });
+  colorButton.OnPress([&]() {
+    MatrixOS::UIUtility::ColorPicker(color);
   });
 
-  // Add the UI element to the UI object to top right conner
-  menu.AddUIComponent(colorSelector, Point(Device::x_size - 1, 0));
+  menu.AddUIComponent(&colorButton, Point(0, 0));
 
-  // A large button that cycles though the brightness of the device
-  UIButton brightnessBtn;
-  brightnessBtn.SetName("Brightness"); // Name
-  brightnessBtn.SetColor(Color(0xFFFFFF)); // Color
-  brightnessBtn.SetSize(Dimension(2, 2)); // Size of the button
-  brightnessBtn.OnPress([&]() -> void { MatrixOS::LED::NextBrightness(); }); // Function to call when the button is pressed
-  brightnessBtn.OnHold([&]() -> void {BrightnessControl().Start(); }); // Function to call when the button is hold down
-
-  // Place this button in the center of the device
-  menu.AddUIComponent(brightnessBtn, Point((Device::x_size - 1) / 2, (Device::y_size - 1) / 2));
-
-  // Set an input event handler for the UI object
-  // By default, the UI exits after the function key is PRESSED.
-  // Since this is the main UI for this application. 
-  // We want to exit the application when the function key is hold down,
-  // and exit the UI is released (but before the hold down time threshold)
-
-  // First, disable the default exit behavior 
   menu.AllowExit(false);
-
-  // Second, set the input event handler to match the intended behavior
   menu.SetInputEventHandler([&](InputEvent* inputEvent) -> bool {
-    // If function key is hold down. Exit the application
     if (inputEvent->id == InputId::FunctionKey() &&
         inputEvent->inputClass == InputClass::Keypad)
     {
-        if(inputEvent->keypad.state == KeypadState::Hold)
-        {
-            Exit();  // Exit the application.
-
-            return true;  // Block UI from to do anything with FN, basically this function control the life cycle of the UI. This is not really needed as the application exits after
-                            // Exit();
-        }
-        else if(inputEvent->keypad.state == KeypadState::Released)
-        {
-            menu.Exit(); // Exit the UI
-            return true; // Block UI from to do anything with FN, basically this function control the life cycle of the UI
-        }
+      if (inputEvent->keypad.state == KeypadState::Hold)
+      {
+        Exit();
+        return true;
+      }
+      if (inputEvent->keypad.state == KeypadState::Released)
+      {
+        menu.Exit();
+        return true;
+      }
     }
-    return false; // Nothing happened. Let the UI handle the key event
+
+    return false;
   });
 
-  // The UI object is now fully set up. Let the UI runtime to start and take over.
   menu.Start();
-  // Once the UI is exited (Not the application exit!), the code will continue here.
-  // If Exit() is called in UI. The code will start in the End() of this application and then exit.
+}
 ```
 
 ## Constructor

@@ -1,5 +1,6 @@
 ---
-sidebar_position: 4
+title: USB
+sidebar_position: 7
 ---
 import GithubLink from '@site/src/components/GithubLink/GithubLink';
 
@@ -9,7 +10,7 @@ import GithubLink from '@site/src/components/GithubLink/GithubLink';
 
 The USB API provides functions for interacting with USB devices. The API includes functions for checking if a USB device is connected, sending and receiving data over USB CDC, and more.
 
-*The header file for this API is part of <GithubLink path="os/MatrixOS.h"/> and the implementation is in <GithubLink path="os/system/USB/"/>.*
+*The header file for this API is part of <GithubLink path="OS/MatrixOS.h"/> and the implementation is in <GithubLink path="OS/USB/"/>.*
 
 ## Namespace: `USB`
 The `USB` namespace contains general USB functions.
@@ -31,7 +32,6 @@ Checks if a USB device is connected.
 ## `CDC`
 
 The `USB::CDC` namespace provides functions for communication over USB as a virtual serial port (CDC).
-In the future this will likely migrate into a MatrixOS::Serial namespace with cross port support between USB, UART, BLE, etc.
 
 ---
 

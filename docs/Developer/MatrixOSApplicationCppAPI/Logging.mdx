@@ -1,5 +1,6 @@
 ---
-sidebar_position: 8
+title: Logging
+sidebar_position: 9
 ---
 import GithubLink from '@site/src/components/GithubLink/GithubLink';
 import DocLink from "@site/src/components/DocLink/DocLink";
@@ -12,11 +13,11 @@ The Logging API provides a set of functions and macros for logging messages at d
 
 The use of logging macro is recommended for performance reasons. The macro will generate no code if the system log level is lower than the level of the message being logged.
 
-The logging functions will generate code regardless of the log level, so they should be used sparingly. In the future there will be a way to change log level at runtime, those functions will be more useful then.
+The logging functions generate code regardless of the log level, so use the macro form for most app logs.
 
-Note: The system log level can be set to debug by using build-dev in build command. All other command has log level None. If you are using build, the default log level in the os/Parameters.h file will be used. (See <DocLink to="/docs/Developer/DebugMatrixOSCpp">Debug Matrix OS</DocLink> for more information.) 
+Use `build-dev` when you need development logs. Release-oriented build modes may compile out lower-level logs depending on the configured log level. See <DocLink to="/docs/Developer/DebugMatrixOSCpp">Debug Your Application (C++)</DocLink> for the full workflow.
 
-*The header file for this API is part of <GithubLink path="os/MatrixOS.h"/> and the implementation is in <GithubLink path="os/system/Logging.cpp"/>.*
+*The header file for this API is part of <GithubLink path="OS/MatrixOS.h"/> and the implementation is in <GithubLink path="OS/Logging/Logging.cpp"/>.*
 
 ---
 

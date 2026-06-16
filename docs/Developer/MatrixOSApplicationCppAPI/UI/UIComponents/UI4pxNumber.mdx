@@ -5,7 +5,7 @@ import GithubLink from '@site/src/components/GithubLink/GithubLink';
 
 # Class: `UI4pxNumber`
 
-The `UI4pxNumber` class represents a compact numeric display component for UI systems. It renders numbers in a 4-pixel-hight format with configurable color, digit count, and spacing.
+The `UI4pxNumber` class represents a compact numeric display component for UI systems. It renders numbers in a 4-pixel-height format with configurable color, digit count, and spacing.
 
 :::info[Things to note]
 Each digit takes up 3 pixels in width. With zero gap it will take up 9 pixels. Usually this means it doesn't fit in 8 width grid. However, digit 1 takes up 1 pixel and digit 2 takes up 2 pixels. So technically you can fit 0 to 299 in 8 width grid.
@@ -14,12 +14,12 @@ Also since the number is hard to read in a 0 gap setting, that's why the alterna
 :::
 
 :::warning[Negative Numbers]
-Currently, the component does not support rendering negative numbers. This functionality may be added in the future. 
+This component does not render negative numbers.
 
-However there's a work around. See <GithubLink path="applications\Mystrix\ForceCalibration\ForceCalibration.cpp"/> 's minusSign implementation in the SetOffset function.
+If your UI needs negative values, render a custom minus sign in app code. See the `minusSign` implementation in `SetOffset` in <GithubLink path="Devices/Mystrix1/Applications/ForceCalibration/ForceCalibration.cpp"/>.
 :::
 
-*The source file for this class is located in <GithubLink path="os/ui/UIComponents/UI4pxNumber.h"/>.*
+*The source file for this class is located in <GithubLink path="OS/UI/Component/UI4pxNumber.h"/>.*
 
 ---
 
@@ -106,9 +106,4 @@ Renders the entire number at the specified position, handling digit placement, c
 ## Notes
 - The component dynamically calculates significant figures for the number.
 - The `Render` method alternates digit colors between `color` and `alternative_color` if specified.
-- Currently, the component does not support rendering negative numbers. This functionality may be added in the future.
-
---- 
-
-This documentation provides a concise yet comprehensive overview of the `UI4pxNumber` class, including its constructor, methods, and usage details.
-``` 
+- Negative numbers need custom app-side rendering.

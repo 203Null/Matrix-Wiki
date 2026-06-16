@@ -1,111 +1,111 @@
 ---
-sidebar_position: 1
+title: System
+sidebar_position: 6
 ---
+
 import GithubLink from '@site/src/components/GithubLink/GithubLink';
 
 # System API
 
-## Overview
+`MatrixOS::SYS` provides app-facing system helpers for time, delays, reboot/bootloader actions, settings, app switching, app exit, and error handling.
 
-The System API provides functions for interacting with the Matrix OS system, such as rebooting the device, opening the settings menu, and rotating the interface.
+*The public declarations are in <GithubLink path="OS/MatrixOS.h"/> and the implementation is in <GithubLink path="OS/System/System.cpp"/>.*
 
-*The header file for this API is part of <GithubLink path="os/MatrixOS.h"/> and the implementation is in <GithubLink path="os/system/System.cpp"/>.*
+## Time
 
----
+### `MatrixOS::SYS::Millis`
 
-## `MatrixOS::SYS::Millis`
 ```cpp
-uint32_t Millis(void);
+uint64_t Millis(void);
 ```
 
-Returns the number of milliseconds since the device started. This can be used for time tracking or delays.
+Returns milliseconds since Matrix OS started.
 
-**Returns:**
-- `uint32_t`: Milliseconds elapsed since startup.
+### `MatrixOS::SYS::Micros`
 
----
-
-## `MatrixOS::SYS::DelayMs`
 ```cpp
-void DelayMs(uint32_t intervalMs);
+uint64_t Micros(void);
 ```
 
-Pauses execution for the specified duration.
+Returns microseconds since Matrix OS started.
 
-**Parameters:**
-- `intervalMs` (`uint32_t`): Duration to delay in milliseconds.
+### `MatrixOS::SYS::DelayMs`
 
----
+```cpp
+void DelayMs(uint32_t ms);
+```
 
-## `MatrixOS::SYS::Reboot`
+Delays the current task for `ms` milliseconds. Prefer cooperative app loops for normal app timing; use delays sparingly.
+
+## System Actions
+
+### `MatrixOS::SYS::Reboot`
+
 ```cpp
 void Reboot(void);
 ```
 
 Reboots the device.
 
----
+### `MatrixOS::SYS::Bootloader`
 
-## `MatrixOS::SYS::Bootloader`
 ```cpp
 void Bootloader(void);
 ```
 
-Reboot the device into bootloader mode.
+Reboots the device into bootloader mode.
 
----
+### `MatrixOS::SYS::OpenSetting`
 
-## `MatrixOS::SYS::OpenSetting`
 ```cpp
 void OpenSetting(void);
 ```
 
-Opens the Matrix OS settings menu.
+Opens Matrix OS settings.
 
----
+## App Switching
 
-## `MatrixOS::SYS::Rotate`
+### `MatrixOS::SYS::ExecuteAPP`
+
 ```cpp
-void Rotate(EDirection rotation, bool absolute = false);
+void ExecuteAPP(uint32_t appId, const vector<string>& args = {});
+void ExecuteAPP(string author, string appName, const vector<string>& args = {});
 ```
 
-Rotates the interface or a specific component in the given direction.
+Launches another app by app ID, or by author and app name.
 
 **Parameters:**
-- `rotation` ([`EDirection`](./Types/EDirection/)): The direction of rotation.
-- `absolute` (`bool`, optional): Whether the rotation should be absolute (from the top position). Defaults to `false`.
 
----
+- `appId`: target application ID.
+- `author`: target application author.
+- `appName`: target application name.
+- `args`: optional arguments passed to the launched app.
 
-## `MatrixOS::SYS::ExecuteAPP`
-```cpp
-void ExecuteAPP(string author, string app_name);
-```
+### `MatrixOS::SYS::ExitAPP`
 
-Launches the specified application.
-
-**Parameters:**
-- `author` (string): The author of the application.
-- `app_name` (string): The name of the application.
-
----
-
-## `MatrixOS::SYS::ExitAPP`
 ```cpp
 void ExitAPP(void);
 ```
 
-Exits the currently running application and returns to the application launcher.
+Exits the current app and returns to Matrix OS app flow.
 
----
+## Error Handling
 
-## `MatrixOS::SYS::ErrorHandler`
+### `MatrixOS::SYS::ErrorHandler`
+
 ```cpp
-void ErrorHandler(string error = "");
+void ErrorHandler(string error = string());
 ```
 
-Handles errors and logs the specified error message.
+Reports a system error. Use this for unrecoverable app or system states where Matrix OS should show or record the failure.
 
-**Parameters:**
-- `error` (string, optional): The error message to handle. Defaults to an empty string.
+## Device Rotation
+
+Device rotation is exposed by the device layer, not `MatrixOS::SYS`:
+
+```cpp
+Device::Rotate(Direction rotation, bool absolute = false);
+Direction Device::GetRotation();
 ```
+
+Use this only when your app intentionally changes the device orientation.

@@ -1,0 +1,42 @@
+---
+title: Overview
+sidebar_position: 0
+---
+
+# C++ API Overview
+
+Use this reference while building native Matrix OS applications. Start with the app guide, then jump into the API pages that match the behavior you are adding.
+
+## Recommended Reading Order
+
+| Need | Start Here |
+| --- | --- |
+| Read device input | [Input](./Input) |
+| Draw LEDs | [LED](./LED) |
+| Send or receive MIDI | [MIDI](./MIDI) |
+| Save settings | [NVS](./NVS) |
+| Read or write files | [FileSystem](./FileSystem) |
+| Control app/system behavior | [System](./System) |
+| Work with USB, HID, or logs | [USB](./USB), [HID](./HID), [Logging](./Logging) |
+| Build on-screen menus | [UI Framework](./UI/UIFramework) |
+| Use shared value types | [Types](./Types/Color) |
+| Use helper utilities | [Utilities](./Utilities/Timer) |
+
+## App Loop Pattern
+
+Native apps should keep `Loop()` cooperative: drain input or MIDI events, update app state, draw only when needed, then return so Matrix OS can continue running other work.
+
+```cpp
+void MyApp::Loop() {
+  InputEvent event;
+  while (MatrixOS::Input::Get(&event))
+  {
+    if (event.inputClass == InputClass::Keypad)
+    {
+      // Update app state from event.keypad.
+    }
+  }
+}
+```
+
+For a complete minimal native app, start with [Code Your Application (C++)](../CppApplication). If you are updating older native code, read [Migration From 3.x to 4.x](./MigrationFrom3To4) after you understand the current Input API.
