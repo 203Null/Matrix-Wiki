@@ -123,8 +123,8 @@ const config: Config = {
       // title: '203 Systems',
       logo: {
         alt: '203 Systems',
-        src: 'img/203.svg',
-        srcDark: 'img/203dark.svg',
+        src: '/img/203.svg',
+        srcDark: '/img/203dark.svg',
       },
       items: [
         {
@@ -247,7 +247,7 @@ const config: Config = {
       ],
       logo: {
         alt: '203 Systems',
-        src: 'img/203 systems long dark.svg',
+        src: '/img/203 systems long dark.svg',
         href: 'https://203.io',
         target: '_self',
         style: {
