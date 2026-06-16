@@ -15,6 +15,31 @@ The System Remote API is a beta developer protocol. Command IDs are documented h
 
 The shared command handler supports MIDI SysEx 7-bit payloads and HID reports. Transport framing differs, but command IDs are kept consistent where possible.
 
+### HID Reports
+
+WebHID clients use the Matrix OS HID collection:
+
+- vendor ID: `0x0203`
+- usage page: `0xFF00`
+- usage: `0x01`
+- system report ID: `0xCB`
+
+System Remote API HID request layout:
+
+```text
+byte 0      command
+byte 1..62  command payload, padded with zeros by the host report layer
+```
+
+System Remote API HID replies start with `command | 0x80`. Commands that return data put that data after the reply command. Commands that only ACK return just the reply command.
+
+For example, to enter Developer APP:
+
+```text
+send report 0xCB: 0x44
+expect reply:     0xC4
+```
+
 ## Relationship To Developer APP
 
 System Remote API prepares and controls the Matrix OS device at the system level. Developer APP is the clean controller canvas for host software.
@@ -22,7 +47,7 @@ System Remote API prepares and controls the Matrix OS device at the system level
 A typical host flow is:
 
 1. Use System Remote API to identify the device and active app.
-2. Use `ENTER_APP_VIA_ID` to enter Developer APP.
+2. Use `OPEN_DEVELOPER_APP` to enter Developer APP.
 3. Use the [Developer APP](./DeveloperAPP) protocol for live input reports and LED canvas writes.
 
 Do not use Developer APP for device metadata, reboot, settings, or app switching. Those belong to System Remote API.
@@ -59,6 +84,7 @@ Do not use Developer APP for device metadata, reboot, settings, or app switching
 | `REBOOT` | `0x41` | Reboot. Returns ACK. |
 | `SLEEP` | `0x42` | Sleep briefly. Returns ACK. |
 | `OPEN_SETTINGS` | `0x43` | Open system settings. Returns ACK. |
+| `OPEN_DEVELOPER_APP` | `0x44` | Enter Developer APP. Returns ACK. |
 | `FACTORY_RESET` | `0x4F` | Factory reset flow with confirmation. |
 
 ## LED Commands

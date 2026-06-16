@@ -11,9 +11,148 @@ Developer APP is a clean controller canvas for host-side software. When the devi
 The Developer APP protocol is still evolving during the beta.
 :::
 
-## Protocol Commands
+## Enter Developer APP
 
-Use [System Remote API](./SystemRemoteAPI) to read device information or enter Developer APP from a host. Once Developer APP is active, use this protocol for live input reports and LED writes.
+Developer APP is hidden from the normal application launcher. A host enters it through [System Remote API](./SystemRemoteAPI):
+
+1. Open the device over the Matrix OS HID interface.
+2. Send System Remote API command `OPEN_DEVELOPER_APP` (`0x44`) on the system report.
+3. Wait briefly for Matrix OS to switch apps.
+4. Send Developer APP `PING` (`0x00`) until it replies.
+5. Enable input reports with `SET_INPUT_REPORT` (`0x01`) if the host needs live input.
+
+`ENTER_APP_VIA_ID` (`0x18`) can launch apps by ID, but `OPEN_DEVELOPER_APP` is the direct system command for this workflow.
+
+## HID Transport
+
+WebHID clients use the Matrix OS HID collection:
+
+- vendor ID: `0x0203`
+- usage page: `0xFF00`
+- usage: `0x01`
+- system report ID: `0xCB`
+- Developer APP report ID: `0xFF`
+- Developer APP report payload size: 63 bytes
+
+System Remote API commands are sent on report `0xCB`. Developer APP commands are sent on report `0xFF` after Developer APP is active.
+
+Developer APP HID report layout:
+
+```text
+byte 0      command
+byte 1..62  command payload, padded with zeros by the host report layer
+```
+
+Replies use the same report ID:
+
+```text
+byte 0      reply command
+byte 1      status, for ACK/error replies
+byte 2..62  reply data
+```
+
+For normal command replies, `reply command = command | 0x80`. For asynchronous input reports, `reply command = 0x90`.
+
+## SysEx Transport
+
+Developer APP also accepts MIDI SysEx messages. SysEx payload bytes must be 7-bit clean.
+
+SysEx command framing:
+
+```text
+F0 <203 Systems manufacturer id> <family id> command payload... F7
+```
+
+SysEx ACK framing:
+
+```text
+F0 <203 Systems manufacturer id> <family id> 0x80 command 0x00 data... F7
+```
+
+SysEx error framing:
+
+```text
+F0 <203 Systems manufacturer id> <family id> 0x81 command status F7
+```
+
+SysEx input event framing:
+
+```text
+F0 <203 Systems manufacturer id> <family id> 0x90 event... F7
+```
+
+HID is the recommended transport for new browser/desktop tools because it supports full 8-bit RGB and RGB565 payloads. SysEx uses 7-bit values, so color and index fields are encoded differently where noted.
+
+## Common Types
+
+### Index
+
+HID uses big-endian 16-bit indexes:
+
+```text
+index_msb index_lsb
+```
+
+SysEx uses two 7-bit bytes:
+
+```text
+index_low7 index_high7
+```
+
+### Signed Coordinate
+
+HID coordinates are signed 8-bit values.
+
+SysEx coordinates use a signed 7-bit value:
+
+- `0..63` means `0..63`
+- `64..127` means `-64..-1`
+
+### LED Flags
+
+LED write commands use a `flags` byte:
+
+| Bits | Name | Meaning |
+| --- | --- | --- |
+| `0x01` | `LED_FLAG_CANVAS` | Queue LED writes without immediate refresh. Use `LED_CANVAS_UPDATE` to show them. |
+| `0x0E` | color mode bits | `(color_mode << 1)` |
+
+Color modes:
+
+| Mode | Value | HID bytes | SysEx bytes |
+| --- | ---: | --- | --- |
+| RGB24 | `0x00` | `r g b` | `r7 g7 b7` |
+| RGBW32 | `0x01` | `r g b w` | `r7 g7 b7 w7` |
+| RGB565 | `0x02` | `rgb565_msb rgb565_lsb` | not supported |
+
+For SysEx RGB/RGBW, each color component is 7-bit and Matrix OS expands it to 8-bit internally.
+
+### LED Partition
+
+LED write commands include a numeric partition index. On current Mystrix layouts:
+
+| Partition | Value | Notes |
+| --- | ---: | --- |
+| Grid | `0x00` | Main grid LEDs. |
+| Underglow | `0x01` | Underglow LEDs when present. |
+
+Tools should use `PING` to read device size and LED count before assuming a fixed layout.
+
+### Keypad State
+
+Input reports and key reads return keypad state values:
+
+| State | Value |
+| --- | ---: |
+| Activated | `0x01` |
+| Pressed | `0x02` |
+| Hold | `0x03` |
+| Aftertouch | `0x04` |
+| Released | `0x05` |
+
+Pressure and velocity are 16-bit values on HID replies and 7-bit reduced values on SysEx replies.
+
+## Command Reference
 
 | Command | ID | Purpose |
 | --- | --- | --- |
@@ -28,26 +167,337 @@ Use [System Remote API](./SystemRemoteAPI) to read device information or enter D
 | `KEY_READ_INDEX` | `0x30` | Read key state by index. |
 | `KEY_READ_XY` | `0x31` | Read key state by coordinate. |
 
-Replies:
+### `PING` (`0x00`)
 
-- `0x80`: ACK
-- `0x81`: error
-- `0x90`: input event report
+Checks that Developer APP is active and returns device geometry.
+
+Request payload: none.
+
+ACK data:
+
+```text
+protocol_version width height led_count_msb led_count_lsb
+```
+
+ACK data in this section means bytes after the HID status byte, or bytes after the SysEx `command 0x00` prefix.
+
+For SysEx, `led_count` uses two 7-bit index bytes instead of HID big-endian bytes.
+
+### `SET_INPUT_REPORT` (`0x01`)
+
+Enables or disables asynchronous input reports.
+
+Request payload:
+
+```text
+report_type enabled
+```
+
+| Field | Values |
+| --- | --- |
+| `report_type` | `0x00` all reports, `0x01` key info reports |
+| `enabled` | `0x00` disabled, any non-zero value enabled |
+
+ACK data: none.
+
+Input events are sent as `REPLY_INPUT_EVENT` (`0x90`) while reports are enabled.
+
+### `EXIT_APP` (`0x02`)
+
+Exits Developer APP and returns control to Matrix OS.
+
+Request payload: none.
+
+ACK data: none.
+
+### `LED_WRITE_INDEX` (`0x10`)
+
+Writes one or more LEDs by LED index.
+
+Request payload:
+
+```text
+flags partition count
+index color
+index color
+...
+```
+
+Each `index` is two bytes. Each `color` uses the selected color mode. The number of entries must match `count`.
+
+When `LED_FLAG_CANVAS` is not set, Matrix OS updates the LED output immediately. When it is set, call `LED_CANVAS_UPDATE` after sending one or more LED write commands.
+
+Successful LED write commands do not send ACK replies. Errors reply with a non-zero status reply.
+
+### `LED_WRITE_XY` (`0x11`)
+
+Writes one or more LEDs by coordinate.
+
+Request payload:
+
+```text
+flags partition count
+x y color
+x y color
+...
+```
+
+Each `x` and `y` is a signed coordinate. Each `color` uses the selected color mode. The number of entries must match `count`.
+
+Successful LED write commands do not send ACK replies. Errors reply with a non-zero status reply.
+
+### `LED_WRITE_INDEX_RANGE` (`0x12`)
+
+Writes a contiguous LED range.
+
+Request payload:
+
+```text
+flags partition start_index count color color ...
+```
+
+`start_index` is two bytes. The payload contains `count` colors using the selected color mode.
+
+For HID RGB565 mirror uploads, a typical payload starts with:
+
+```text
+(LED_FLAG_CANVAS | (RGB565 << 1)) partition start_msb start_lsb count rgb565...
+```
+
+Successful LED write commands do not send ACK replies. Errors reply with a non-zero status reply.
+
+### `LED_CANVAS_UPDATE` (`0x20`)
+
+Refreshes LEDs after queued canvas writes.
+
+Request payload: none.
+
+Successful canvas updates do not send ACK replies. Errors reply with a non-zero status reply.
+
+### `LED_CLEAR_SCREEN` (`0x21`)
+
+Clears all LEDs to black.
+
+Request payload:
+
+```text
+flags
+```
+
+`flags` is optional. When bit `0x01` is set, Matrix OS refreshes LEDs immediately after clearing.
+
+Successful clear commands do not send ACK replies. Errors reply with a non-zero status reply.
+
+### `KEY_READ_INDEX` (`0x30`)
+
+Reads keypad state by LED index.
+
+Request payload:
+
+```text
+index
+```
+
+ACK data is a key info record. If the index cannot map to keypad input, the command returns `bad payload`.
+
+### `KEY_READ_XY` (`0x31`)
+
+Reads keypad state by coordinate.
+
+Request payload:
+
+```text
+x y
+```
+
+ACK data is a key info record. If the coordinate cannot map to keypad input, the command returns `bad payload`.
+
+## Key Info Record
+
+`KEY_READ_*` replies and asynchronous input reports use the same key info record.
+
+HID layout:
+
+```text
+event_type cluster_id member_msb member_lsb x y state pressure_msb pressure_lsb velocity_msb velocity_lsb
+```
+
+SysEx layout:
+
+```text
+event_type cluster_id member_low7 member_high7 x7 y7 state pressure7 velocity7
+```
+
+Fields:
+
+| Field | Meaning |
+| --- | --- |
+| `event_type` | `0x01` for key info. |
+| `cluster_id` | Input cluster. Function key is cluster `0x00`; primary grid is usually `0x01`. |
+| `member` | Input member inside the cluster. |
+| `x`, `y` | Coordinate. Function key reports `(0, 0)`. |
+| `state` | Keypad state value. |
+| `pressure` | Pressure value. HID is 16-bit; SysEx is 7-bit reduced. |
+| `velocity` | Velocity value. HID is 16-bit; SysEx is 7-bit reduced. |
+
+Developer APP currently reports keypad-class input for the function key and primary grid. Hold events are not emitted as asynchronous reports.
+
+## Replies And Errors
+
+HID reply commands:
+
+| Reply | Value | Payload |
+| --- | ---: | --- |
+| ACK | `command | 0x80` | `0x00 data...` |
+| Error | `command | 0x80` | `status` |
+| Input event | `0x90` | key info record |
+
+SysEx reply commands:
+
+| Reply | Value | Payload |
+| --- | ---: | --- |
+| ACK | `0x80` | `command 0x00 data...` |
+| Error | `0x81` | `command status` |
+| Input event | `0x90` | key info record |
 
 Status/error codes:
 
-- `0x00`: OK
-- `0x02`: bad length
-- `0x03`: bad payload
-- `0x7F`: unknown command
+| Status | Value | Meaning |
+| --- | ---: | --- |
+| OK | `0x00` | Command accepted. |
+| Bad length | `0x02` | Payload length is wrong or incomplete. |
+| Bad payload | `0x03` | Payload values are invalid for the current device/state. |
+| Unknown command | `0x7F` | Command ID is not implemented. |
 
-Input reporting modes:
+Some high-throughput LED commands skip ACK on success. Treat lack of an ACK as success only for commands documented above as skipping ACK, and still watch for non-zero status replies.
 
-- `0x00`: all reports
-- `0x01`: key info reports
+## Minimal Host Flow
 
-LED color modes:
+```text
+System report 0xCB:
+  send 0x44                         # OPEN_DEVELOPER_APP
+  wait for 0xC4 ACK
 
-- `0x00`: RGB24
-- `0x01`: RGBW32
-- `0x02`: RGB565
+Developer APP report 0xFF:
+  send 0x00                         # PING
+  expect 0x80 0x00 version w h led_count
+
+Developer APP report 0xFF:
+  send 0x01 0x01 0x01               # SET_INPUT_REPORT, key info, enabled
+  expect 0x81 0x00                  # command | 0x80, OK
+```
+
+For HID, `SET_INPUT_REPORT` replies on `command | 0x80`, so command `0x01` replies as `0x81 0x00` on success. The same byte value `0x81` is also the SysEx error reply command. Always interpret replies in the context of the transport.
+
+## Minimal WebHID Example
+
+This example enters Developer APP, enables key info reports, and writes one red LED. Production tools should keep a pending-reply map and route `0x90` input events separately.
+
+```js
+const VENDOR_ID = 0x0203
+const USAGE_PAGE = 0xff00
+const USAGE = 0x01
+const SYSTEM_REPORT_ID = 0xcb
+const APP_REPORT_ID = 0xff
+
+function makeReport(...bytes) {
+  const report = new Uint8Array(63)
+  report.set(bytes)
+  return report
+}
+
+function delay(ms) {
+  return new Promise((resolve) => setTimeout(resolve, ms))
+}
+
+function waitForReport(device, reportId, match, timeoutMs = 1000) {
+  return new Promise((resolve, reject) => {
+    const timer = setTimeout(() => {
+      cleanup()
+      reject(new Error("Timed out waiting for report"))
+    }, timeoutMs)
+
+    function cleanup() {
+      clearTimeout(timer)
+      device.removeEventListener("inputreport", onInputReport)
+    }
+
+    function onInputReport(event) {
+      if (event.reportId !== reportId) return
+
+      const data = new Uint8Array(
+        event.data.buffer,
+        event.data.byteOffset,
+        event.data.byteLength,
+      )
+
+      if (!match(data)) return
+      cleanup()
+      resolve(data)
+    }
+
+    device.addEventListener("inputreport", onInputReport)
+  })
+}
+
+async function sendAndWait(device, reportId, bytes, match, timeoutMs) {
+  const reply = waitForReport(device, reportId, match, timeoutMs)
+  await device.sendReport(reportId, makeReport(...bytes))
+  return reply
+}
+
+const [device] = await navigator.hid.requestDevice({
+  filters: [{ vendorId: VENDOR_ID, usagePage: USAGE_PAGE, usage: USAGE }],
+})
+
+if (!device) {
+  throw new Error("No Matrix OS HID device selected")
+}
+
+await device.open()
+
+// Enter Developer APP through System Remote API.
+await sendAndWait(
+  device,
+  SYSTEM_REPORT_ID,
+  [0x44],
+  (data) => data[0] === 0xc4,
+)
+
+await delay(250)
+
+// Wait for Developer APP to respond.
+let pingReply = null
+for (let attempt = 0; attempt < 15 && pingReply === null; attempt++) {
+  try {
+    pingReply = await sendAndWait(
+      device,
+      APP_REPORT_ID,
+      [0x00],
+      (data) => data[0] === 0x80 && data[1] === 0x00,
+      250,
+    )
+  } catch {
+    await delay(150)
+  }
+}
+
+if (pingReply === null) {
+  throw new Error("Developer APP did not respond")
+}
+
+// Enable key info input events.
+await sendAndWait(
+  device,
+  APP_REPORT_ID,
+  [0x01, 0x01, 0x01],
+  (data) => data[0] === 0x81 && data[1] === 0x00,
+)
+
+// Queue LED 0 as red using RGB565, then update the canvas.
+await device.sendReport(
+  APP_REPORT_ID,
+  makeReport(0x12, 0x01 | (0x02 << 1), 0x00, 0x00, 0x00, 0x01, 0xf8, 0x00),
+)
+await device.sendReport(APP_REPORT_ID, makeReport(0x20))
+```
