@@ -5,13 +5,15 @@ sidebar_position: 2
 
 # Developer APP
 
-The Developer APP is an on-device tool for interactive testing and external control. It exposes a focused HID/SysEx protocol for tooling that needs live input reports, LED writes, and basic app-session control.
+Developer APP is a clean controller canvas for host-side software. When the device is running Developer APP, external software can treat a Mystrix as an input surface and LED canvas instead of as a standalone Matrix OS application.
 
 :::warning Matrix OS 4.0 beta
 The Developer APP protocol is still evolving during the beta.
 :::
 
 ## Protocol Commands
+
+Use [System Remote API](./SystemRemoteAPI) to read device information or enter Developer APP from a host. Once Developer APP is active, use this protocol for live input reports and LED writes.
 
 | Command | ID | Purpose |
 | --- | --- | --- |

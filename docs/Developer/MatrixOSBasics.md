@@ -1,5 +1,5 @@
 ---
-sidebar_position: 1
+sidebar_position: 0
 ---
 
 # Developer Overview
@@ -8,7 +8,7 @@ Matrix OS can be extended in several ways. Start with the path that matches what
 
 ## Start Here
 
-For most development work, start with [Matrix OS Developer Toolkit](./MatrixOSDeveloperToolkit). It gives you a browser-hosted Matrix OS runtime with input, LED, storage, Python, serial, MIDI, HID, logs, and automation tools.
+For most app and tooling work, start with [Matrix OS Developer Toolkit](./MatrixOSDeveloperToolkit). It gives you a browser-hosted Matrix OS runtime with input, LED, storage, Python, serial, MIDI, HID, logs, and automation tools.
 
 Use the toolkit when you want to:
 
@@ -20,18 +20,15 @@ Use the toolkit when you want to:
 
 You should still test hardware-dependent behavior on a real device before release.
 
-## Choose A Development Path
+## Choose What You Are Building
 
 | Goal | Start With | Use When |
 | --- | --- | --- |
+| Prototype locally | [Matrix OS Developer Toolkit](./MatrixOSDeveloperToolkit) | You want to run Matrix OS in the browser, test Python snippets, inspect input/LED state, or automate checks before using hardware. |
 | Write a Python app | [Code Your Application (Python)](./PythonApplication) | You want a shareable app, quick iteration, and direct Matrix OS APIs from Python. |
 | Write a native app | [Code Your Application (C++)](./CppApplication) | You need maximum performance, direct native APIs, or deeper integration with Matrix OS. |
-| Use the C++ API | [Matrix OS Application API (C++)](/docs/category/matrix-os-application-api-c) | You already have a native app and need exact API behavior. |
-| Use the Python API | [Matrix OS Application API (Python)](/docs/category/matrix-os-application-api-python) | You already have a Python app and need exact module/function behavior. |
-| Control Matrix OS from a host | [System Remote API](./InterfacingWithMatrixOS/SystemRemoteAPI) | You are building tools, automation, simulator workflows, or host integrations. |
-| Work with the Developer APP protocol | [Developer APP](./InterfacingWithMatrixOS/DeveloperAPP) | You need live input reports, LED writes, or app-session control over the focused developer protocol. |
-| Build Matrix OS | [Building Matrix OS](/docs/category/building-matrix-os) | You want to compile firmware, run a simulator build, or contribute to Matrix OS itself. |
-| Port Matrix OS | [Porting Matrix OS](/docs/category/porting-matrix-os) | You are bringing Matrix OS to a new device, platform, or hardware layer. |
+| Build host software around a device | [Developer APP](./InterfacingWithMatrixOS/DeveloperAPP) | You want a clean controller canvas: use a Mystrix as an input surface and LED canvas for software running on a host. |
+| Read device info or issue system commands | [System Remote API](./InterfacingWithMatrixOS/SystemRemoteAPI) | You need device/app metadata, reboot/settings/app launch commands, or a way to enter Developer APP from a host. |
 
 ## Recommended Flow
 
@@ -40,6 +37,15 @@ You should still test hardware-dependent behavior on a real device before releas
 3. Run the smallest example first: set one LED, read one input, then add storage or MIDI.
 4. Keep the API reference open while you iterate.
 5. Test on hardware before relying on timing, USB, HID, MIDI, storage, or pressure-sensitive input behavior.
+
+## Host Control Model
+
+Matrix OS has two host-facing protocol layers:
+
+- [System Remote API](./InterfacingWithMatrixOS/SystemRemoteAPI) is for device information and system-level control. Use it to read version/device/app metadata, reboot or open settings, and enter apps such as Developer APP.
+- [Developer APP](./InterfacingWithMatrixOS/DeveloperAPP) is for controller-style software. Enter Developer APP first, then use its focused protocol for input reports and LED canvas writes.
+
+Use System Remote API to get the device into the right app state. Use Developer APP when your host software wants Matrix OS hardware to behave like a clean controller surface.
 
 ## API Model
 
@@ -56,4 +62,6 @@ If you are migrating C++ code from 3.x, read [Migration From 3.x to 4.x](./Matri
 - New to Matrix OS development: [Matrix OS Developer Toolkit](./MatrixOSDeveloperToolkit)
 - Writing a first Python app: [Code Your Application (Python)](./PythonApplication)
 - Updating native app input handling: [Input API](./MatrixOSApplicationCppAPI/Input)
-- Automating tests or tools: [System Remote API](./InterfacingWithMatrixOS/SystemRemoteAPI)
+- Building host-side controller software: [Developer APP](./InterfacingWithMatrixOS/DeveloperAPP)
+- Device info and system control: [System Remote API](./InterfacingWithMatrixOS/SystemRemoteAPI)
+- API details: [Matrix OS Application API (C++)](/docs/category/matrix-os-application-api-c) and [Matrix OS Application API (Python)](/docs/category/matrix-os-application-api-python)
