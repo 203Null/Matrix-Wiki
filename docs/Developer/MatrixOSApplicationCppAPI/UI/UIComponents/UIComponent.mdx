@@ -29,13 +29,13 @@ Returns the size of the component. Used by the UI system to determine the compon
 
 ### `KeyEvent`
 ```cpp
-virtual bool KeyEvent(Point xy, KeyInfo* keyInfo);
+virtual bool KeyEvent(Point xy, KeypadInfo* keypadInfo);
 ```
-Handles a key event at the specified position. The UI system calls this method when a key event occurs. Override this method to process key events.
+Handles a keypad-class input event at the specified position. The UI system calls this method when an `InputEvent` maps to the component. Override this method to process keypad events.
 
 **Parameters:**
 - `xy` ([`Point`](../../Types/Point/)): The position of the event.
-- `keyInfo` ([`KeyInfo*`](../../Types/KeyInfo/)): Information about the key event.
+- `keypadInfo` (`KeypadInfo*`): Information about the keypad event, including state, pressure, velocity, hold status, and timing.
 
 **Returns:**
 - `bool`: `true` if the event was handled, `false` otherwise.

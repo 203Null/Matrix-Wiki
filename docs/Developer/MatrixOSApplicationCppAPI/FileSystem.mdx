@@ -1,0 +1,61 @@
+---
+title: FileSystem
+---
+
+import GithubLink from '@site/src/components/GithubLink/GithubLink';
+
+# FileSystem API
+
+Matrix OS 4.0 exposes a sandboxed filesystem API for application storage. The public functions are declared in <GithubLink path="OS/MatrixOS.h"/> and the `File` wrapper is declared in <GithubLink path="OS/FileSystem/File.h"/>.
+
+Filesystem access depends on device storage. Apps should call `MatrixOS::FileSystem::Available()` before assuming files can be created or read.
+
+## Filesystem Functions
+
+```cpp
+MatrixOS::FileSystem::Init();
+bool available = MatrixOS::FileSystem::Available();
+string path = MatrixOS::FileSystem::TranslatePath("settings.json");
+MatrixOS::FileSystem::EnsureAppDirectory();
+bool exists = MatrixOS::FileSystem::Exists("settings.json");
+bool made = MatrixOS::FileSystem::MakeDir("presets");
+File file = MatrixOS::FileSystem::Open("settings.json", "w");
+bool removed = MatrixOS::FileSystem::Remove("settings.json");
+bool removedDir = MatrixOS::FileSystem::RemoveDir("presets");
+bool renamed = MatrixOS::FileSystem::Rename("old.json", "new.json");
+vector<string> entries = MatrixOS::FileSystem::ListDir(".");
+```
+
+Relative paths are translated through the app filesystem sandbox. Use `TranslatePath()` only when you need to inspect the resolved Matrix OS path; for normal app code, pass relative paths to `Open()`, `Exists()`, `ListDir()`, and the other helpers.
+
+## File Wrapper
+
+```cpp
+File file = MatrixOS::FileSystem::Open("log.txt", "a");
+if (file.Available()) {
+  file.Println("hello");
+  file.Flush();
+  file.Close();
+}
+```
+
+`File` supports:
+
+- `Name()`
+- `Available()`
+- `Close()`
+- `Flush()`
+- `Peek()`
+- `Position()`
+- `Print(...)` / `Println(...)`
+- `Seek(position, whence)`
+- `Size()`
+- `Read(buffer, length)`
+- `Write(buffer, length)`
+- `IsDirectory()`
+
+## Notes
+
+- Storage-less builds provide compile-safe stubs, so app code can still compile when a target does not include storage support.
+- File paths are sandboxed and hardened in 4.0. Avoid relying on absolute host paths or path traversal behavior.
+- For Python apps, see the `MatrixOS.FileSystem` module and standard `open()` support in [Python Application Development](../PythonApplication).

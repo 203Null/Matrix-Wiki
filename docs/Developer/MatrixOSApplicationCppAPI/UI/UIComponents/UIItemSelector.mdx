@@ -85,13 +85,13 @@ Renders the selector grid, highlighting the selected item and dimming unselected
 
 ### `KeyEvent`
 ```cpp
-virtual bool KeyEvent(Point xy, KeyInfo* keyInfo);
+virtual bool KeyEvent(Point xy, KeypadInfo* keypadInfo);
 ```
 Handles key events for selecting items and optionally displaying their names. Override this method to customize the item selection behavior.
 
 **Parameters:**
 - `xy` ([`Point`](../../Types/Point/)): The position of the event relative to the selector grid.
-- `keyInfo` ([`KeyInfo*`](../../Types/KeyInfo/)): Information about the key event.
+- `keypadInfo` (`KeypadInfo*`): Information about the keypad event.
 
 **Behavior:**
 - **Pressed**: Selects the item at the event position and invokes the callback, if defined.

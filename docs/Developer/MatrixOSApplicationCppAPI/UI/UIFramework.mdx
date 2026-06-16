@@ -16,7 +16,7 @@ The UI framework provides a set of classes and utilities for creating interactiv
  
 ## Overview
 
-The UI framework provides a default way for creating user interfaces with customizable components, event handling, and rendering. It supports features like layered rendering, custom key event handling, and modular setup.
+The UI framework provides a default way for creating user interfaces with customizable components, event handling, and rendering. It supports features like layered rendering, custom input event handling, and modular setup.
 
 You can add different UI components into the UI framework to create a user interface. The UI framework will manage the rendering and interaction of these components. 
 
@@ -28,7 +28,7 @@ Additionally, there are some pre made UI interfaces that you can use directly, l
 - Customizable rendering and update rate.
 - Modular setup with function hooks for setup, loop, pre-render, post-render, and end tasks.
 - Support for layered UI components.
-- Event-driven design for handling key events.
+- Event-driven design for handling input events.
 
 ---
 
@@ -40,7 +40,7 @@ Additionally, there are some pre made UI interfaces that you can use directly, l
 
 3. Start the UI object. - [Start()](#start)
 
-Optionally, you can customize the UI behavior by setting key event handlers, function hooks, and refresh rate, etc. - <DocLink to="#event-handling-methods">Event Handling Methods</DocLink>, <DocLink to="#function-hook-setters-methods">Function Hook Setters Methods</DocLink>, <DocLink to="#utilities-methods">Utilities Methods</DocLink>
+Optionally, you can customize the UI behavior by setting input event handlers, function hooks, and refresh rate, etc. - <DocLink to="#event-handling-methods">Event Handling Methods</DocLink>, <DocLink to="#function-hook-setters-methods">Function Hook Setters Methods</DocLink>, <DocLink to="#utilities-methods">Utilities Methods</DocLink>
 
 ## Example
 
@@ -94,7 +94,7 @@ Part of the Example app
   // Place this button in the center of the device
   menu.AddUIComponent(brightnessBtn, Point((Device::x_size - 1) / 2, (Device::y_size - 1) / 2));
 
-  // Set a key event handler for the UI object
+  // Set an input event handler for the UI object
   // By default, the UI exits after the function key is PRESSED.
   // Since this is the main UI for this application. 
   // We want to exit the application when the function key is hold down,
@@ -103,19 +103,20 @@ Part of the Example app
   // First, disable the default exit behavior 
   menu.AllowExit(false);
 
-  // Second, set the key event handler to match the intended behavior
-  menu.SetKeyEventHandler([&](KeyEvent* keyEvent) -> bool {
+  // Second, set the input event handler to match the intended behavior
+  menu.SetInputEventHandler([&](InputEvent* inputEvent) -> bool {
     // If function key is hold down. Exit the application
-    if (keyEvent->id == FUNCTION_KEY)
+    if (inputEvent->id == InputId::FunctionKey() &&
+        inputEvent->inputClass == InputClass::Keypad)
     {
-        if(keyEvent->info.state == HOLD)
+        if(inputEvent->keypad.state == KeypadState::Hold)
         {
             Exit();  // Exit the application.
 
             return true;  // Block UI from to do anything with FN, basically this function control the life cycle of the UI. This is not really needed as the application exits after
                             // Exit();
         }
-        else if(keyEvent->info.state == RELEASED)
+        else if(inputEvent->keypad.state == KeypadState::Released)
         {
             menu.Exit(); // Exit the UI
             return true; // Block UI from to do anything with FN, basically this function control the life cycle of the UI
@@ -189,14 +190,14 @@ Removes all UI components.
 
 ## Event Handling Methods
 
-### `SetKeyEventHandler`
+### `SetInputEventHandler`
 ```cpp
-void SetKeyEventHandler(std::function<bool(KeyEvent*)> key_event_handler);
+void SetInputEventHandler(std::function<bool(InputEvent*)> inputEventHandler);
 ```
-Sets the custom key event handler. This will be called before the default key event handling. If the handler returns `true`, the default key event handling will be skipped.
+Sets the custom input event handler. This will be called before the default input handling. If the handler returns `true`, the default UI input handling will be skipped.
 
 **Parameters:**
-- `key_event_handler` (`std::function<bool(KeyEvent*)>`): The handler function.
+- `inputEventHandler` (`std::function<bool(InputEvent*)>`): The handler function.
 
 ---
 

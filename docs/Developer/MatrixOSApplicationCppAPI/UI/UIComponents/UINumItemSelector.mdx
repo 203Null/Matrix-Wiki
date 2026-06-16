@@ -88,13 +88,13 @@ Renders the selector grid, highlighting items less than or equal to the selected
 
 ### `KeyEvent`
 ```cpp
-virtual bool KeyEvent(Point xy, KeyInfo* keyInfo);
+virtual bool KeyEvent(Point xy, KeypadInfo* keypadInfo);
 ```
 Handles key events for selecting items. Override this method to customize the item selection behavior.
 
 **Parameters:**
 - `xy` ([`Point`](../../Types/Point/)): The position of the event relative to the selector grid.
-- `keyInfo` ([`KeyInfo*`](../../Types/KeyInfo/)): Information about the key event.
+- `keypadInfo` (`KeypadInfo*`): Information about the keypad event.
 
 **Behavior:**
 - **Pressed**: Updates the output value and invokes the callback, if defined.

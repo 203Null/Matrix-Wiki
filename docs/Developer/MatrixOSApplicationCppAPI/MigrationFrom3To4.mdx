@@ -1,0 +1,44 @@
+---
+title: Migration From 3.x to 4.x
+sidebar_position: -101
+---
+
+# Migration From 3.x to 4.x
+
+Matrix OS 4.x C++ apps should use the Input API instead of the 3.x keypad event model. The main change is that input is now device-owned and described through `InputId`, `InputCluster`, `InputEvent`, and `InputSnapshot`.
+
+## Input API
+
+| 3.x API | 4.x API |
+| --- | --- |
+| `MatrixOS::KEYPAD::Get(&keyEvent)` | `MatrixOS::Input::Get(&inputEvent)` |
+| `KeyEvent` | `InputEvent` |
+| `KeyInfo` | `KeypadInfo` through `inputEvent.keypad` |
+| `FUNCTION_KEY` | `InputId::FunctionKey()` |
+| `MatrixOS::KEYPAD::ID2XY(keyId)` | `MatrixOS::Input::GetPosition(inputId, &xy)` |
+| `MatrixOS::KEYPAD::XY2ID(xy)` | `MatrixOS::Input::GetInputAt(clusterId, xy, &id)` |
+| `MatrixOS::KEYPAD::ClearList()` | `MatrixOS::Input::ClearInputBuffer()` |
+
+Check `inputEvent.inputClass == InputClass::Keypad` before reading keypad-specific state.
+
+## UI Handlers
+
+| 3.x API | 4.x API |
+| --- | --- |
+| `menu.SetKeyEventHandler(...)` | `menu.SetInputEventHandler(...)` |
+| `KeyEvent* keyEvent` | `InputEvent* inputEvent` |
+| `keyEvent->info` | `inputEvent->keypad` |
+
+## Device-Independent Layouts
+
+Do not persist numeric key IDs as a device-independent contract. For portable layouts, resolve coordinates through `MatrixOS::Input::GetPrimaryGridCluster()` and `MatrixOS::Input::GetInputAt(...)`, or persist semantic roles and map them at runtime.
+
+```cpp
+const InputCluster* grid = MatrixOS::Input::GetPrimaryGridCluster();
+InputId id;
+
+if (grid && MatrixOS::Input::GetInputAt(grid->clusterId, Point(0, 0), &id)) {
+  InputSnapshot snapshot;
+  MatrixOS::Input::GetState(id, &snapshot);
+}
+```

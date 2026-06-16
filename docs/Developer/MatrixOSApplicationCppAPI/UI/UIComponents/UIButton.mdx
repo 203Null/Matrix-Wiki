@@ -163,13 +163,13 @@ Renders the button on the screen by filling its area with the assigned color.
 
 ### `KeyEvent`
 ```cpp
-virtual bool KeyEvent(Point xy, KeyInfo* keyInfo);
+virtual bool KeyEvent(Point xy, KeypadInfo* keypadInfo);
 ```
 Handles key events on the button. Triggers the press or hold callback based on the event type.
 
 **Parameters:**
 - `xy` ([`Point`](../../Types/Point/)): The position of the event relative to the button.
-- `keyInfo` ([`KeyInfo*`](../../Types/KeyInfo/)): Information about the key event.
+- `keypadInfo` (`KeypadInfo*`): Information about the keypad event.
 
 **Returns:**
 - `bool`: `true` if the event was handled, `false` otherwise.

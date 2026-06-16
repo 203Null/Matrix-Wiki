@@ -85,13 +85,13 @@ Renders the selector grid, highlighting the currently selected item.
 
 ### `KeyEvent`
 ```cpp
-virtual bool KeyEvent(Point xy, KeyInfo* keyInfo);
+virtual bool KeyEvent(Point xy, KeypadInfo* keypadInfo);
 ```
 Handles key events for selecting items and displaying the selector's name during hold events.
 
 **Parameters:**
 - `xy` ([`Point`](../../Types/Point/)): The position of the event relative to the selector grid.
-- `keyInfo` ([`KeyInfo*`](../../Types/KeyInfo/)): Information about the key event.
+- `keypadInfo` (`KeypadInfo*`): Information about the keypad event.
 
 **Behavior:**
 - **Hold**: Displays the `name` of the selector in a scrolling text format.

@@ -75,13 +75,13 @@ Renders the component at the specified origin.
 
 ### `KeyEvent`
 ```cpp
-virtual bool KeyEvent(Point xy, KeyInfo* keyInfo);
+virtual bool KeyEvent(Point xy, KeypadInfo* keypadInfo);
 ```
 Handles key events to adjust the value based on the selected modifier.
 
 **Parameters:**
 - `xy` ([`Point`](../../Types/Point/)): The position of the event relative to the component.
-- `keyInfo` ([`KeyInfo*`](../../Types/KeyInfo/)): Information about the key event.
+- `keypadInfo` (`KeypadInfo*`): Information about the keypad event.
 
 **Behavior:**
 - **Pressed**: Adjusts the value by the modifier at the selected position. Clamps the result within `lower_limit` and `upper_limit`.

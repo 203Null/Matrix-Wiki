@@ -1,0 +1,137 @@
+---
+sidebar_position: 3
+---
+
+import GithubLink from '@site/src/components/GithubLink/GithubLink';
+
+# Input API
+
+`MatrixOS::Input` is the input API for keypad, touchbar, scalar controls, and future input types.
+
+The Input API describes every physical control as an `InputId` inside an `InputCluster`. A cluster can represent a grid, a touch strip, a scalar control such as the function key, or a future input type. Applications should read `InputEvent` objects for live input and `InputSnapshot` objects when they need the current state of a specific input.
+
+*The public API is declared in <GithubLink path="OS/MatrixOS.h"/>. Input data types live under <GithubLink path="OS/Framework/Input"/>.*
+
+## Core Types
+
+- `InputId`: identifies one input member with `(clusterId, memberId)`.
+- `InputCluster`: describes a group of related inputs, including name, class, shape, root point, dimension, and input count.
+- `InputEvent`: one queued input event.
+- `InputSnapshot`: current state for one input.
+- `InputClass`: input family such as `Keypad`, `Fader`, `Encoder`, `TouchArea`, `Gyro`, `Accelerometer`, `Temperature`, `Battery`, or `Generic`.
+- `KeypadInfo`: keypad state, pressure, velocity, hold, and suppression information.
+
+## `MatrixOS::Input::Get`
+
+```cpp
+bool Get(InputEvent* event, uint32_t timeoutMs = 0);
+```
+
+Fetches the next input event from the input queue.
+
+```cpp
+InputEvent event;
+while (MatrixOS::Input::Get(&event)) {
+  Point xy;
+  if (event.inputClass == InputClass::Keypad &&
+      MatrixOS::Input::GetPosition(event.id, &xy)) {
+    if (event.keypad.state == KeypadState::Pressed) {
+      MatrixOS::LED::SetColor(xy, Color::White);
+      MatrixOS::LED::Update();
+    }
+  }
+}
+```
+
+## `MatrixOS::Input::GetState`
+
+```cpp
+bool GetState(InputId id, InputSnapshot* snapshot);
+```
+
+Reads the current state of a specific input.
+
+```cpp
+InputSnapshot fn;
+if (MatrixOS::Input::GetState(InputId::FunctionKey(), &fn) &&
+    fn.inputClass == InputClass::Keypad &&
+    fn.keypad.Active()) {
+  MatrixOS::SYS::OpenSetting();
+}
+```
+
+## Clusters
+
+```cpp
+const vector<InputCluster>& GetClusters();
+const InputCluster* GetCluster(uint8_t clusterId);
+const InputCluster* GetPrimaryGridCluster();
+```
+
+Use clusters when an app needs to adapt to different devices. The primary grid is the main playable keypad grid on Mystrix-class devices.
+
+```cpp
+const InputCluster* grid = MatrixOS::Input::GetPrimaryGridCluster();
+if (grid) {
+  Dimension size = grid->dimension;
+}
+```
+
+## Position Mapping
+
+```cpp
+void GetInputsAt(Point xy, vector<InputId>* ids);
+bool GetInputAt(uint8_t clusterId, Point xy, InputId* id);
+bool GetPosition(InputId id, Point* xy);
+```
+
+These helpers map between global UI coordinates and device-owned input identities. Use them instead of assuming a key ID formula.
+
+```cpp
+InputId id;
+const InputCluster* grid = MatrixOS::Input::GetPrimaryGridCluster();
+if (grid && MatrixOS::Input::GetInputAt(grid->clusterId, Point(0, 0), &id)) {
+  InputSnapshot snapshot;
+  MatrixOS::Input::GetState(id, &snapshot);
+}
+```
+
+## Clearing Input
+
+```cpp
+void ClearInputBuffer();
+```
+
+Clears pending input events. Matrix OS uses this during app transitions and modal UI exits so stale releases or holds do not leak into the next screen.
+
+## Keypad Capabilities
+
+```cpp
+bool GetKeypadCapabilities(uint8_t clusterId, KeypadCapabilities* caps);
+```
+
+Reports whether a keypad cluster supports pressure, aftertouch, velocity, or sub-key position data.
+
+```cpp
+KeypadCapabilities caps;
+if (grid && MatrixOS::Input::GetKeypadCapabilities(grid->clusterId, &caps) && caps.hasVelocity) {
+  // Enable velocity-sensitive behavior.
+}
+```
+
+## Migration From 3.x to 4.x
+
+See [Migration From 3.x to 4.x](./MigrationFrom3To4) for a focused mapping from the 3.x keypad event model to the 4.x Input API.
+
+## Common Operations
+
+| Task | API |
+| --- | --- |
+| Read the next event | `MatrixOS::Input::Get(&inputEvent)` |
+| Read the current state at a point | `GetInputAt(...)` then `GetState(...)` |
+| Convert a point to an input ID | `GetInputAt(clusterId, xy, &id)` |
+| Convert an input ID to a point | `GetPosition(inputId, &xy)` |
+| Clear pending input | `MatrixOS::Input::ClearInputBuffer()` |
+| Keypad event data | `InputEvent.keypad` when `inputClass == InputClass::Keypad` |
+
+Do not persist numeric key IDs as a device-independent contract. Persist `InputId` only when the app owns a specific device mapping, or persist coordinates/semantic roles and resolve them through the active cluster at runtime.
