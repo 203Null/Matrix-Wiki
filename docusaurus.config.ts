@@ -53,6 +53,10 @@ const config: Config = {
           lastVersion: 'current',
           versions: {
               current: {
+                label: 'Matrix OS 4.0 🚧',
+                banner: 'none',
+              },
+              '3.2': {
                 label: 'Matrix OS 3.2',
                 banner: 'none',
               },
@@ -283,7 +287,7 @@ const config: Config = {
 };
 
 function getNextVersionName() {
-  return 'Canary';
+  return '🚧';
 }
 
 export default config;
