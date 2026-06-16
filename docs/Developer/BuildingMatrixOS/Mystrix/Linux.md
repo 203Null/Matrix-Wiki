@@ -83,6 +83,10 @@ The ESP-IDF (Espressif IoT Development Framework) is required to build and uploa
 
 ## Build Matrix OS
 
+:::info Matrix OS 4.0 device targets
+Use `DEVICE=Mystrix` for Mystrix 1 family devices. Use `DEVICE=Mystrix2` for Mystrix 2 family devices.
+:::
+
 1. Load ESP-IDF by sourcing it in your terminal session:
 
    ```bash
@@ -99,6 +103,12 @@ The ESP-IDF (Espressif IoT Development Framework) is required to build and uploa
    make DEVICE=Mystrix build
    ```
 
+   For Mystrix 2:
+
+   ```bash
+   make DEVICE=Mystrix2 build
+   ```
+
 4. Prepare for the upload by ensuring your Mystrix is in <DocLink to="/docs/Mystrix/UpdateMatrixOS#enter-os-update-mode">upload mode</DocLink>.
 
 5. Install `psutil` (only needed once):
@@ -111,6 +121,12 @@ The ESP-IDF (Espressif IoT Development Framework) is required to build and uploa
 
    ```bash
    make DEVICE=Mystrix uf2-upload
+   ```
+
+   For Mystrix 2:
+
+   ```bash
+   make DEVICE=Mystrix2 uf2-upload
    ```
 
 7. Your Mystrix device should now flash and start the newly compiled Matrix OS automatically.
@@ -128,3 +144,5 @@ You can chain commands together like:
 ```bash
 make DEVICE=Mystrix clean build uf2-upload
 ```
+
+Use `DEVICE=Mystrix2` in the same command chain when building for Mystrix 2.

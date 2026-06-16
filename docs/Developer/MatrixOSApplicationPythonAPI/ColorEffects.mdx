@@ -1,0 +1,29 @@
+---
+title: ColorEffects
+sidebar_position: 14
+---
+
+# ColorEffects API
+
+`MatrixOS.ColorEffects` exposes Matrix OS color effect helpers.
+
+Methods:
+
+- `rainbow(period: int = 1000, offset: int = 0) -> int`
+- `color_breath(color: ColorLike, period: int = 1000, offset: int = 0) -> int`
+- `color_strobe(color: ColorLike, period: int = 1000, offset: int = 0) -> int`
+- `color_saw(color: ColorLike, period: int = 1000, offset: int = 0) -> int`
+
+`period` must be greater than `0`, otherwise the function raises `ValueError`.
+
+```python
+import MatrixOS
+
+while True:
+    color = MatrixOS.ColorEffects.rainbow(1000)
+    MatrixOS.LED.fill(color)
+    MatrixOS.LED.update()
+    MatrixOS.SYS.sleep_ms(16)
+```
+
+This is an app-loop animation pattern. For an RPC smoke test, use a bounded loop instead of `while True`.

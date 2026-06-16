@@ -51,6 +51,10 @@ python3 $HOME/esp/esp-idf/tools/idf_tools.py install riscv32-esp-elf
 ```
 
 ## Build Matrix OS
+:::info Matrix OS 4.0 device targets
+Use `DEVICE=Mystrix` for Mystrix 1 family devices. Use `DEVICE=Mystrix2` for Mystrix 2 family devices.
+:::
+
 1. Load ESP-IDF by sourcing it in your terminal session. You can run this command to set up ESP-IDF for the session:
    ```bash
    source ~/esp/esp-idf/export.sh
@@ -63,10 +67,18 @@ python3 $HOME/esp/esp-idf/tools/idf_tools.py install riscv32-esp-elf
    ```bash
    make DEVICE=Mystrix build
    ```
+   For Mystrix 2:
+   ```bash
+   make DEVICE=Mystrix2 build
+   ```
 4. Prepare to upload to your Mystrix device. Make sure your Mystrix is in <DocLink to="/docs/Mystrix/UpdateMatrixOS#enter-os-update-mode">upload mode</DocLink> already.
 5. Upload the compiled Matrix OS to Mystrix:
    ```bash
    make DEVICE=Mystrix uf2-upload
+   ```
+   For Mystrix 2:
+   ```bash
+   make DEVICE=Mystrix2 uf2-upload
    ```
 6. Your Mystrix device should now flash and automatically start the newly compiled Matrix OS.
 
@@ -83,3 +95,5 @@ You can chain commands together like:
 ```bash
 make DEVICE=Mystrix clean build uf2-upload
 ```
+
+Use `DEVICE=Mystrix2` in the same command chain when building for Mystrix 2.

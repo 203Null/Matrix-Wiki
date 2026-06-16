@@ -1,0 +1,35 @@
+---
+title: SYS
+sidebar_position: 1
+---
+
+# SYS API
+
+`MatrixOS.SYS` provides system time, app lifecycle, and system actions.
+
+```python
+import MatrixOS
+
+now = MatrixOS.SYS.millis()
+version = MatrixOS.SYS.version()
+print(now, version)
+```
+
+Methods:
+
+- `millis() -> int`
+- `micros() -> int`
+- `sleep_ms(ms: int) -> None`
+- `task_yield() -> None`
+- `exit_app() -> None`
+- `reboot() -> None`
+- `bootloader() -> None`
+- `open_setting() -> None`
+- `execute_app(app_id: int, args: list[str] = []) -> None`
+- `execute_app(author: str, app_name: str, args: list[str] = []) -> None`
+- `version() -> str`
+- `version_id() -> int`
+
+`task_yield()` is a cooperative yield. Use `sleep_ms()` when the app needs an actual delay.
+
+`reboot()`, `bootloader()`, and `execute_app()` are real lifecycle actions. If they succeed, the current Python app may stop running.

@@ -1,104 +1,37 @@
 ---
+title: NVS
 sidebar_position: 6
 ---
-import GithubLink from '@site/src/components/GithubLink/GithubLink';
 
 # NVS API
 
-## Preview notice
-The MatrixOS Python API is in preview and is subject to change; it may contain errors.
+`MatrixOS.NVS` stores app settings. Use string keys for normal app settings.
 
-
-## Overview
-
-The NVS (Non-Volatile Storage) API in MatrixOS provides persistent storage for application data that survives device reboots. Data is stored using hash-based keys and can store arbitrary binary data. The NVS API is available as `MatrixOS.NVS` and is imported by default.
-
-*The Python NVS API is implemented in <GithubLink path="Applications/Python/PikaPython/MatrixOS_NVS.py"/> with type hints in <GithubLink path="Applications/Python/PikaPython/_MatrixOS_NVS.pyi"/>.*
-
----
-
-## `MatrixOS.NVS.GetSize`
 ```python
-def GetSize(hash: int) -> int
+import MatrixOS
+
+mode = MatrixOS.NVS.get("Python Dice mode", 0)
+MatrixOS.NVS.set("Python Dice mode", mode + 1)
 ```
 
-Gets the size of stored data for a given hash key.
+Recommended methods:
 
-**Parameters:**
-- `hash` (`int`): Hash key identifying the stored data
+- `get(key: str | int, default=None) -> bool | int | str | bytes | None`
+- `set(key: str | int, value: bool | int | str | bytes | bytearray) -> bool`
 
-**Returns:**
-- `int`: Size of stored data in bytes, or 0 if not found
+When no default is provided, `get()` returns existing data as raw `bytes`, or `None` when the key does not exist. When a default is provided, the binding decodes according to the default type.
 
+Typed helpers:
 
----
-
-## `MatrixOS.NVS.GetVariable`
-```python
-def GetVariable(hash: int) -> bytes
-```
-
-Retrieves stored data for a given hash key.
-
-**Parameters:**
-- `hash` (`int`): Hash key identifying the stored data
-
-**Returns:**
-- `bytes`: Stored data as bytes object, or empty bytes if not found
-
-
----
-
-## `MatrixOS.NVS.SetVariable`
-```python
-def SetVariable(hash: int, data: bytes) -> bool
-```
-
-Stores data with a given hash key.
-
-**Parameters:**
-- `hash` (`int`): Hash key to identify the data
-- `data` (`bytes`): Data to store
-
-**Returns:**
-- `bool`: True if successful, False on error
-
-
----
-
-## `MatrixOS.NVS.DeleteVariable`
-```python
-def DeleteVariable(hash: int) -> bool
-```
-
-Deletes stored data for a given hash key.
-
-**Parameters:**
-- `hash` (`int`): Hash key identifying the data to delete
-
-**Returns:**
-- `bool`: True if successful, False if key not found or error
-
-
----
-
-
-
-
-
-
-## Hash Key Guidelines
-
-1. **Uniqueness**: Ensure hash keys don't collide between applications
-2. **Consistency**: Use the same key generation method throughout your app
-3. **Namespacing**: Consider using base offsets for different data types
-4. **Documentation**: Document your key allocation scheme
-
----
-
-## Storage Considerations
-
-- **Persistence**: Data survives reboots and power cycles
-- **Wear Leveling**: NVS handles flash wear leveling automatically
-- **Size Limits**: Check device specifications for NVS capacity
-- **Performance**: NVS operations may have latency, avoid in time-critical code
+- `get_u8(key: str | int, default: int) -> int`
+- `set_u8(key: str | int, value: int) -> bool`
+- `get_u16(key: str | int, default: int) -> int`
+- `set_u16(key: str | int, value: int) -> bool`
+- `get_u32(key: str | int, default: int) -> int`
+- `set_u32(key: str | int, value: int) -> bool`
+- `get_size(key: str | int) -> int`
+- `delete(key: str | int) -> bool`
+- `get_bytes(key: str | int, default: bytes | None = None) -> bytes | None`
+- `set_bytes(key: str | int, data: bytes) -> bool`
+- `get_string(key: str | int, default: str = "") -> str`
+- `set_string(key: str | int, value: str) -> bool`

@@ -1,0 +1,72 @@
+---
+title: Python API Overview
+sidebar_position: 0
+---
+
+# Python API Overview
+
+Python apps use `snake_case` methods under the `MatrixOS` module.
+
+## Stable Modules
+
+| Module | Purpose |
+| --- | --- |
+| [`MatrixOS.SYS`](./SYS) | Time, app lifecycle, reboot/bootloader, settings, version, and app launch helpers. |
+| [`MatrixOS.LED`](./LED) | LED drawing, layers, brightness, and partition queries. |
+| [`MatrixOS.Input`](./Input) | Input events, snapshots, clusters, coordinate lookup, and keypad capabilities. |
+| [`MatrixOS.MIDI`](./MIDI) | `MidiPacket` objects, MIDI receive/send, and SysEx helpers. |
+| [`MatrixOS.HID`](./HID) | Keyboard, gamepad, and RawHID helpers. |
+| [`MatrixOS.USB`](./USB) | USB and CDC status/io helpers. |
+| [`MatrixOS.NVS`](./NVS) | App settings with string keys and advanced typed helpers. |
+| [`MatrixOS.FileSystem`](./FileSystem) | Sandboxed file helpers plus standard `open()` support. |
+| [`MatrixOS.Logging`](./Logging) | Matrix OS structured logging. |
+| [`MatrixOS.UI`](./UI) | Common Matrix OS UI components and utilities. |
+| [`MatrixOS.ColorEffects`](./ColorEffects) | Matrix OS color effect helpers. |
+| [`MatrixOS.Color`](./Color) | Packed color construction. |
+| [`MatrixOS.Timer`](./Timer) | Lightweight loop timing. |
+
+## Naming Rules
+
+- Use `snake_case`: `MatrixOS.LED.set_xy(...)`, `MatrixOS.SYS.execute_app(...)`, `MatrixOS.Input.get_event(...)`.
+- Use tuple points and dimensions: `(x, y)`.
+- Use tuple input IDs: `(cluster_id, member_id)`.
+- Use packed RGB ints or RGB/RGBW tuples for colors.
+- Query APIs return `None`, `False`, `0`, empty bytes, or empty lists when data is unavailable.
+
+## Input Example
+
+```python
+import MatrixOS
+
+for _ in range(100):
+    event = MatrixOS.Input.get_event(10)
+    if event is None:
+        MatrixOS.SYS.task_yield()
+        continue
+
+    keypad = event.get("keypad")
+    point = event.get("point")
+    if keypad and point and keypad.get("pressed"):
+        MatrixOS.LED.set_xy(point[0], point[1], (255, 255, 255), 255)
+        MatrixOS.LED.update(255)
+```
+
+This bounded loop is useful for quick tests. In a standalone app, put the same event polling pattern in the app loop.
+
+## File Example
+
+```python
+import MatrixOS
+
+if MatrixOS.FileSystem.available():
+    with open("settings.txt", "w") as f:
+        f.write("mode=debug\n")
+```
+
+## App Structure Notes
+
+- Use `MatrixOS.Input` for keypad, touchbar, and other input events.
+- Input events and snapshots are dictionaries.
+- Use `MatrixOS.LED.set_xy(...)` or `MatrixOS.LED.set_index(...)` for direct LED writes.
+- Use `MatrixOS.SYS.millis()` for uptime timing.
+- Folder apps use `AppInfo.json` plus `main.py`; single-file snippets are useful for REPL experiments.

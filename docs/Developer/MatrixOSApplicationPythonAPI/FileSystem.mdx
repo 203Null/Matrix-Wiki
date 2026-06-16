@@ -1,0 +1,43 @@
+---
+title: FileSystem
+sidebar_position: 7
+---
+
+# FileSystem API
+
+`MatrixOS.FileSystem` uses the app sandbox. Standard `open(path, mode)` is also supported.
+
+```python
+import MatrixOS
+
+if MatrixOS.FileSystem.available():
+    MatrixOS.FileSystem.write_text("settings.txt", "mode=debug\n")
+    text = MatrixOS.FileSystem.read_text("settings.txt")
+    print(text)
+```
+
+Methods:
+
+- `available() -> bool`
+- `exists(path: str) -> bool`
+- `mkdir(path: str) -> bool`
+- `remove(path: str) -> bool`
+- `rmdir(path: str) -> bool`
+- `rename(from_path: str, to_path: str) -> bool`
+- `list_dir(path: str = "/") -> list[str]`
+- `read_bytes(path: str) -> bytes | None`
+- `write_bytes(path: str, data: bytes) -> bool`
+- `read_text(path: str, encoding: str = "utf-8") -> str | None`
+- `write_text(path: str, text: str, encoding: str = "utf-8") -> bool`
+
+`read_*()` returns `None` when a file does not exist. `write_*()` creates or overwrites files and creates parent directories when needed.
+
+Relative paths resolve from the current script directory. In Matrix OS Developer Toolkit staged apps, this resolves under `host:/python/`.
+
+## External Imports
+
+The current script directory is added to `sys.path`, so a staged app can upload `main.py` and `helper.py` together:
+
+```python
+import helper
+```

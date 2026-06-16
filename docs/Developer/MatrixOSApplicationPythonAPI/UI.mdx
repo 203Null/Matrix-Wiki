@@ -1,0 +1,132 @@
+---
+title: UI
+sidebar_position: 13
+---
+
+# UI API
+
+`MatrixOS.UI` exposes common Matrix OS UI utilities and components to Python.
+
+## Utility Functions
+
+- `text_scroll(text: str, color: ColorLike, speed: int = 10, loop: bool = False) -> None`
+- `color_picker(color: ColorLike, shade: bool = True) -> int | None`
+- `number_selector(value: int, color: ColorLike, name: str, lower_limit: int = INT_MIN, upper_limit: int = INT_MAX) -> int`
+
+`color_picker()` returns a packed RGB int when the user confirms, or `None` when the user cancels.
+
+## Selector Constants
+
+Direction constants:
+
+- `DIRECTION_RIGHT_THEN_DOWN`
+- `DIRECTION_DOWN_THEN_RIGHT`
+- `DIRECTION_LEFT_THEN_DOWN`
+- `DIRECTION_DOWN_THEN_LEFT`
+- `DIRECTION_UP_THEN_RIGHT`
+- `DIRECTION_RIGHT_THEN_UP`
+- `DIRECTION_UP_THEN_LEFT`
+- `DIRECTION_LEFT_THEN_UP`
+
+Lit mode constants:
+
+- `LIT_EQUAL`
+- `LIT_LESS_EQUAL_THAN`
+- `LIT_GREATER_EQUAL_THAN`
+- `LIT_ALWAYS`
+
+## `UI.UI(...)`
+
+```python
+import MatrixOS
+
+ui = MatrixOS.UI.UI("Settings", (0, 255, 255), True)
+```
+
+- `start() -> None`
+- `exit() -> None`
+- `close() -> bool`
+- `set_name(name: str) -> None`
+- `set_color(color: ColorLike) -> None`
+- `set_new_layer(create: bool) -> None`
+- `allow_exit(allow: bool) -> None`
+- `set_fps(fps: int) -> None`
+- `add(component, position: Point) -> None`
+- `clear() -> None`
+- `set_setup_func(callback) -> None`
+- `set_loop_func(callback) -> None`
+- `set_global_loop_func(callback) -> None`
+- `set_pre_render_func(callback) -> None`
+- `set_post_render_func(callback) -> None`
+- `set_end_func(callback) -> None`
+- `set_input_handler(callback) -> None`
+
+`set_input_handler(callback)` receives an InputEvent dict. Return a truthy value to consume the event.
+
+## Shared Component Methods
+
+`Button`, `Selector`, `Number`, `Toggle`, and `CustomComponent` support:
+
+- `close() -> bool`
+- `set_enabled(enabled: bool) -> None`
+- `set_enable_func(callback) -> None`
+
+## `UI.Button(...)`
+
+- `set_name(name: str) -> None`
+- `set_color(color: ColorLike) -> None`
+- `set_size(size: Dimension) -> None`
+- `set_color_func(callback) -> None`
+- `on_press(callback) -> None`
+- `on_hold(callback) -> None`
+
+## `UI.Selector(...)`
+
+- `set_value(value: int) -> None`
+- `get_value() -> int`
+- `set_value_func(callback) -> None`
+- `on_change(callback) -> None`
+- `set_dimension(dimension: Dimension) -> None`
+- `set_name(name: str) -> None`
+- `set_count(count: int) -> None`
+- `set_direction(direction: int) -> None`
+- `set_lit_mode(lit_mode: int) -> None`
+- `set_color(color: ColorLike) -> None`
+- `set_color_func(callback) -> None`
+- `set_individual_color_func(callback) -> None`
+- `set_individual_name_func(callback) -> None`
+
+## `UI.Number(...)`
+
+- `set_value(value: int) -> None`
+- `get_value() -> int`
+- `set_value_func(callback) -> None`
+- `set_name(name: str) -> None`
+- `set_color(color: ColorLike) -> None`
+- `set_alternative_color(color: ColorLike) -> None`
+- `set_digits(digits: int) -> None`
+- `set_spacing(spacing: int) -> None`
+- `set_color_func(callback) -> None`
+
+## `UI.Toggle(...)`
+
+- `set_value(value: bool) -> None`
+- `get_value() -> bool`
+- `set_name(name: str) -> None`
+- `set_color(color: ColorLike) -> None`
+- `set_color_func(callback) -> None`
+- `set_size(size: Dimension) -> None`
+- `on_press(callback) -> None`
+- `on_hold(callback) -> None`
+
+## `UI.CustomComponent(...)`
+
+Custom components are lightweight Python-defined UI controls for app-specific interactions.
+
+- `set_size(size: Dimension) -> None`
+- `set_render_func(callback) -> None`
+- `set_key_func(callback) -> None`
+
+The render callback receives `origin: Point` and can draw with `MatrixOS.LED`.
+
+The key callback receives `xy: Point` and `keypad: dict`. `xy` is relative to the component origin. Return a truthy value to consume the event.

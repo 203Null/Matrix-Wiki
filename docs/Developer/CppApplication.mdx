@@ -1,35 +1,39 @@
 ---
-sidebar_position: 1
+sidebar_position: 2
 ---
 
 import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
 import { vscDarkPlus } from 'react-syntax-highlighter/dist/esm/styles/prism';
 import DocLink from "@site/src/components/DocLink/DocLink";
 
-# Code your application (C++)
+# Code Your Application (C++)
+
+:::info[Matrix OS 4.0 beta]
+The examples below use the current `MatrixOS::Input`, `InputEvent`, and `KeypadInfo` APIs.
+:::
 
 ## Native Application System Overview
 
-In Matrix OS, native (C++) applications will be running on the device as it's own thread in the OS and have access to System API, device level low level API, and any third party library. This is great for performance but not great for portability and sharing. (hint hint)
+In Matrix OS, each native C++ application runs on the device in its own OS thread. Native apps can use Matrix OS APIs, device-layer APIs, FreeRTOS APIs, and third-party C/C++ libraries. This gives native apps the best performance and integration, but it also makes them less portable than Python apps.
 
-The application code will be similar to the Arduino, which you will have an user defined Setup() for the initialization of your application, a user defined Loop() as infinite loop for your application code. Additionally, you will have a user defined End() for end of your application and a Exit() function that you can call to exit the application.
+The application structure is similar to Arduino sketches: `Setup()` initializes the app, `Loop()` runs repeatedly while the app is active, `End()` cleans up when the app exits, and `Exit()` can be called when the app needs to close itself.
 
 ## Available API
 
-- Matrix OS C++ API - Matrix OS provided APIs, they are the easiest to use, provides the best portability, and memory safe (supposedly).
-- Device Layer API - Device layer provided API. Matrix OS API are largely a wrapper over those and you should be using them instead. There might be some non standard API for some special device features that have not been added into the Matrix OS API.
-- FreeRTOS API - Matrix OS runs on FreeRTOS and you can use FreeRTOS API as well to create threads and cross thread communication. 
-- Any third party C/C++ library you wish to use - You should be able to include them inside your application folder and use them.
+- Matrix OS C++ API - Matrix OS-provided APIs. These are the preferred APIs for portability and memory safety.
+- Device Layer API - Device-level APIs for hardware features that are not exposed through the Matrix OS C++ API.
+- FreeRTOS API - Matrix OS runs on FreeRTOS, so native apps can use FreeRTOS APIs for threads and cross-thread communication.
+- Third-party C/C++ libraries - Native apps can include libraries inside the application folder when the library can be built with the Matrix OS toolchain.
 
-:::warning[Non Stable API & Build system]
-As this project is still evolving, I can not promise APIs will stay the same. There are constantly a lot of new usages that requires new API and changes of existing API. Your code will break, but I don't know when and how. I do try to maintain backward compatibility as much as possible but I won't try to save an obviously bad design.
-
-Matrix OS build system might be receiving an overhaul soon so it will be smarter to know what to compile and what not to. Your code might need to change a bit to adapt to it, but it shouldn't be very hard and there will be migration guide.
+:::warning[Beta API & Build system]
+The API and build system are still evolving during the beta. Application code may need updates as the platform changes.
 :::
 
 ## Example App
 
-We use the example App in the Matrix OS the example to explain how the application works. You can find the source code at the [Matrix OS repo](https://github.com/203Null/MatrixOS/tree/WiFi-Example/applications/Example)
+This page walks through a native Matrix OS application structure. If you are updating older 3.x code, read [Migration From 3.x to 4.x](./MatrixOSApplicationCppAPI/MigrationFrom3To4) before converting input handling.
+
+Use the Matrix OS source tree as the source of truth for current native app examples.
 
 
 ### Header File
@@ -72,7 +76,7 @@ class ExampleAPP : public Application {
   #endif
 
   void UIMenu();
-  void KeyEventHandler(uint16_t KeyID, KeyInfo* keyInfo);
+  void InputEventHandler(InputEvent* inputEvent);
   void MidiEventHandler(MidiPacket midiPacket);
 };
 
@@ -103,11 +107,11 @@ This includes the MatrixOS.h file, which includes all the framework, type, and A
 
 <SyntaxHighlighter language="cpp" style={vscDarkPlus}>
 {`
-#include "applications/Application.h"" 
+#include "applications/Application.h"
 `}
 </SyntaxHighlighter>
 
-This include the Application.h file, which is the base class for all applications. It provides the basic structure for the application.
+This includes the `Application.h` file, which defines the base class for all applications.
 
 <SyntaxHighlighter language="cpp" style={vscDarkPlus}>
 {`
@@ -115,7 +119,7 @@ This include the Application.h file, which is the base class for all application
 `}
 </SyntaxHighlighter>
 
-This include the BrightnessControl.h file, which is an external UI for brightness control. This shows that you can include UI or UI elements from other applications. (Although it's not recommended)
+This includes the `BrightnessControl.h` file, which is an external UI for brightness control. This shows that you can include UI elements from other applications, although shared app UI should be used carefully.
 
 
 
@@ -151,7 +155,7 @@ Make sure all your variables are within the class. If you define them outside of
 <SyntaxHighlighter language="cpp" style={vscDarkPlus}>
 {`
   CreateSavedVar("Example", number, uint8_t, 0);
-  CreateSavedVar("Example", color, Color, Color(0xFFFFFF))
+  CreateSavedVar("Example", color, Color, Color(0xFFFFFF));
 `}
 </SyntaxHighlighter>
 If you want to save your variable between restarts, you can use the CreateSavedVar() macro.
@@ -173,12 +177,12 @@ For more info on saved variable, see <DocLink to="/docs/Developer/MatrixOSApplic
 <SyntaxHighlighter language="cpp" style={vscDarkPlus}>
 {`
   void UIMenu();
-  void KeyEventHandler(uint16_t KeyID, KeyInfo* keyInfo);
+  void InputEventHandler(InputEvent* inputEvent);
   void MidiEventHandler(MidiPacket midiPacket);
 `}
 </SyntaxHighlighter>
 
-This is the function definition of the UIMenu(), KeyEventHandler(), and MidiEventHandler() functions. They are used by the application to handle UI, key, and MIDI events. We will explain them in the source file section.
+This is the function definition of the UIMenu(), InputEventHandler(), and MidiEventHandler() functions. They are used by the application to handle UI, input, and MIDI events. We will explain them in the source file section.
 
 <SyntaxHighlighter language="cpp" style={vscDarkPlus}>
 {`
@@ -223,34 +227,38 @@ void ExampleAPP::Setup() {
 
 // Run in a loop after Setup()
 void ExampleAPP::Loop() {
-  // Set up key event handler
-  struct KeyEvent keyEvent; // Variable for the latest key event to be stored at
-  while (MatrixOS::KEYPAD::Get(&keyEvent)) // While there is still keyEvent in the queue
-  { KeyEventHandler(keyEvent.id, &keyEvent.info); } // Handle them
+  // Set up input event handler
+  InputEvent inputEvent; // Variable for the latest input event to be stored at
+  while (MatrixOS::Input::Get(&inputEvent)) // While there is still input event in the queue
+  { InputEventHandler(&inputEvent); } // Handle it
 
 struct MidiPacket midiPacket; // Variable for the latest midi packet to be stored at
   while (MatrixOS::MIDI::Get(&midiPacket)) // While there is still midi packet in the queue
   { MidiEventHandler(midiPacket); } // Handle them
 }
 
-// Handle the key event from the OS
-void ExampleAPP::KeyEventHandler(uint16_t keyID, KeyInfo* keyInfo) {
-  Point xy = MatrixOS::KEYPAD::ID2XY(keyID);  // Trying to get the XY coordination of the KeyID
-  if (xy)                                     // IF XY is valid, means it is a key on the grid
+// Handle the input event from the OS
+void ExampleAPP::InputEventHandler(InputEvent* inputEvent) {
+  if (inputEvent->inputClass != InputClass::Keypad) {
+    return;
+  }
+
+  Point xy;
+  if (MatrixOS::Input::GetPosition(inputEvent->id, &xy)) // If XY is valid, this input maps to a coordinate
   {
-    MLOGD("Example", "Key %d %d %d", xy.x, xy.y, keyInfo->state); // Print the key event to the debug log
-    if (keyInfo->state == PRESSED)            // Key is pressed
+    MLOGD("Example", "Input %d %d %d", xy.x, xy.y, inputEvent->keypad.state); // Print the input event to the debug log
+    if (inputEvent->keypad.state == KeypadState::Pressed) // Key is pressed
     {
       MatrixOS::LED::SetColor(xy, color, 0);      // Set the LED color to a color. Last 0 means writes to the active layer (255 writes to the active layer as well but do not trigger auto update.)
     }
-    else if (keyInfo->state == RELEASED)
+    else if (inputEvent->keypad.state == KeypadState::Released)
     {
       MatrixOS::LED::SetColor(xy, 0x000000, 0);  // Set the LED to off
     }
   }
   else                          // XY Not valid,
   {
-    if (keyID == FUNCTION_KEY)  // FUNCTION_KEY is pre defined by the device, as the keyID for the system function key
+    if (inputEvent->id == InputId::FunctionKey())  // The function key is exposed through the Input API
     {
       UIMenu();                 // Open UI Menu
     }
@@ -353,18 +361,19 @@ void ExampleAPP::UIMenu() {
   menu.AllowExit(false);
 
   // Second, set the key event handler to match the intended behavior
-  menu.SetKeyEventHandler([&](KeyEvent* keyEvent) -> bool {
+  menu.SetInputEventHandler([&](InputEvent* inputEvent) -> bool {
     // If function key is hold down. Exit the application
-    if (keyEvent->id == FUNCTION_KEY)
+    if (inputEvent->id == InputId::FunctionKey() &&
+        inputEvent->inputClass == InputClass::Keypad)
     {
-        if(keyEvent->info.state == HOLD)
+        if(inputEvent->keypad.state == KeypadState::Hold)
         {
             Exit();  // Exit the application.
 
             return true;  // Block UI from to do anything with FN, basically this function control the life cycle of the UI. This is not really needed as the application exits after
                             // Exit();
         }
-        else if(keyEvent->info.state == RELEASED)
+        else if(inputEvent->keypad.state == KeypadState::Released)
         {
             menu.Exit(); // Exit the UI
             return true; // Block UI from to do anything with FN, basically this function control the life cycle of the UI
@@ -404,8 +413,7 @@ void ExampleAPP::End() {
 `}
 </SyntaxHighlighter>
 
-This includes the Example.h file, which includes the header file of the application. 
-It also includes the UI.h file, which includes the Matrix OS UI framework. (Why does it need to include the UI framework separately? The default UI framework is not a part of the Matrix OS kernal but it's separate, built in library. You are welcome to make your own UI framework or use a third party one if there is one)
+This includes `Example.h`, the application header, and `ui/UI.h`, the Matrix OS UI framework. The UI framework is a built-in library, not part of the core Matrix OS kernel, so native apps include it explicitly when they use UI components.
 
 <SyntaxHighlighter language="cpp" style={vscDarkPlus}>
 {`
@@ -420,10 +428,10 @@ This is the Setup() function of the application. It is called once when the appl
 <SyntaxHighlighter language="cpp" style={vscDarkPlus}>
 {`
 void ExampleAPP::Loop() {
-    // Set up key event handler
-    struct KeyEvent keyEvent; // Variable for the latest key event to be stored at
-    while (MatrixOS::KEYPAD::Get(&keyEvent)) // While there is still keyEvent in the queue
-    { KeyEventHandler(keyEvent.id, &keyEvent.info); } // Handle them
+    // Set up input event handler
+    InputEvent inputEvent; // Variable for the latest input event to be stored at
+    while (MatrixOS::Input::Get(&inputEvent)) // While there is still input event in the queue
+    { InputEventHandler(&inputEvent); } // Handle it
 
     struct MidiPacket midiPacket; // Variable for the latest midi packet to be stored at
 
@@ -434,27 +442,31 @@ void ExampleAPP::Loop() {
 </SyntaxHighlighter>
 
 This is the Loop() function of the application. It is called in a loop after the Setup() function. It is used to run the main logic of the application.
-In this case, it is looping to check if there is any key or MIDI event in the queue and handle them until the queue is empty.
+In this case, it is looping to check if there is any input or MIDI event in the queue and handle them until the queue is empty.
 
 <SyntaxHighlighter language="cpp" style={vscDarkPlus}>
 {`
-void ExampleAPP::KeyEventHandler(uint16_t keyID, KeyInfo* keyInfo) {
-    Point xy = MatrixOS::KEYPAD::ID2XY(keyID);  // Trying to get the XY coordination of the KeyID
-    if (xy)                                     // IF XY is valid, means it is a key on the grid
+void ExampleAPP::InputEventHandler(InputEvent* inputEvent) {
+    if (inputEvent->inputClass != InputClass::Keypad) {
+      return;
+    }
+
+    Point xy;
+    if (MatrixOS::Input::GetPosition(inputEvent->id, &xy))  // IF XY is valid, this input maps to a coordinate
     {
-      MLOGD("Example", "Key %d %d %d", xy.x, xy.y, keyInfo->state); // Print the key event to the debug log
-      if (keyInfo->state == PRESSED)            // Key is pressed
+      MLOGD("Example", "Input %d %d %d", xy.x, xy.y, inputEvent->keypad.state); // Print the input event to the debug log
+      if (inputEvent->keypad.state == KeypadState::Pressed)            // Key is pressed
       {
         MatrixOS::LED::SetColor(xy, color, 0);      // Set the LED color to a color. Last 0 means writes to the active layer (255 writes to the active layer as well but do not trigger auto update.)
       }
-      else if (keyInfo->state == RELEASED)
+      else if (inputEvent->keypad.state == KeypadState::Released)
       {
         MatrixOS::LED::SetColor(xy, 0x000000, 0);  // Set the LED to off
       }
     }
     else                          // XY Not valid,
     {
-      if (keyID == FUNCTION_KEY)  // FUNCTION_KEY is pre defined by the device, as the keyID for the system function key
+      if (inputEvent->id == InputId::FunctionKey())  // Function key input
       {
         UIMenu();                 // Open UI Menu
       }
@@ -463,15 +475,15 @@ void ExampleAPP::KeyEventHandler(uint16_t keyID, KeyInfo* keyInfo) {
 `}
 </SyntaxHighlighter>
 
-This is the KeyEventHandler() function of the application. It is called when there is a key event. It is used to handle the key event.
+This is the InputEventHandler() function of the application. It is called when there is an input event. It is used to handle keypad-class input events.
 
 It sets the LED color of the key to the color variable when the key is pressed. It sets the LED color of the key to off when the key is released. It opens the UI menu when the function key is pressed.
 
-You will get a keyID as the id of the key of the event, and a KeyInfo struct as the information of the key event. The KeyInfo struct contains the state of the key event (PRESSED, HOLD, AFTERTOUCH, RELEASED) and the value of the key event.
+You will get an `InputEvent` with an `InputId` and an input class. For keypad input, `inputEvent->keypad` contains the state of the key event (`KeypadState::Pressed`, `KeypadState::Hold`, `KeypadState::Aftertouch`, `KeypadState::Released`) and pressure/velocity data.
 
-You can use the MatrixOS API KEYPAD::ID2XY(id) to get the XY coordination of the keyID. If the bool(xy) == false or xy == Point.Invalid(), then the keyID is not a key on the grid. (It's a key with ID only). 
+You can use `MatrixOS::Input::GetPosition(inputEvent->id, &xy)` to get the XY coordinate for coordinate-addressable inputs.
 
-FUNCTION_KEY is an function key ID provided by device layer. In the case of Mystrix, it is the center key. All Mystrix OS device are required to have a FUNCTION_KEY or equivalent method of evoking it.
+`InputId::FunctionKey()` identifies the system function input. In the case of Mystrix, it is the center key. All Matrix OS devices are required to have a function key or equivalent method of invoking it.
 
 <SyntaxHighlighter language="cpp" style={vscDarkPlus}>
 {`
@@ -555,15 +567,16 @@ void ExampleAPP::UIMenu() {
 
   menu.AllowExit(false);
 
-  menu.SetKeyEventHandler([&](KeyEvent* keyEvent) -> bool {
-    if (keyEvent->id == FUNCTION_KEY)
+  menu.SetInputEventHandler([&](InputEvent* inputEvent) -> bool {
+    if (inputEvent->id == InputId::FunctionKey() &&
+        inputEvent->inputClass == InputClass::Keypad)
     {
-        if(keyEvent->info.state == HOLD)
+        if(inputEvent->keypad.state == KeypadState::Hold)
         {
             Exit();
             return true;
         }
-        else if(keyEvent->info.state == RELEASED)
+        else if(inputEvent->keypad.state == KeypadState::Released)
         {
             menu.Exit();
             return true;
@@ -633,20 +646,20 @@ To add the application to the OS, you need to add the application to the applica
 `}
 </SyntaxHighlighter>
 
-Add your application to the USER APPLICATION section of the file. Simply include the header file of your application. (In this case, it is "applications/Example/Example.h")
+Add your application to the USER APPLICATION section of the file by including the application header. In this example, the header is `applications/Example/Example.h`.
 
 In the Matrix OS application launcher, the order of the applications in the list is the order they will be displayed in the UI. You can change the order of the applications by changing the order of the applications in the file.
 
 
 ## Your Application as Submodule
 
-You can create your Application in it's own repository and include it as a submodule in the Matrix OS repository. This way, you can develop your application separately and different builds can include it as external module.
+You can create your application in its own repository and include it as a submodule in the Matrix OS repository. This lets you develop the application separately and include it as an external module in specific builds.
 
-We are also working on standardized this process so you can easily include your application in the Matrix OS build system. We might also release an webapp that can help you create a Matrix OS build with different applications you want to include!
+We are working on standardizing this process so applications can be added to the Matrix OS build system more easily.
 
 ## Things to Note
 
 - Make sure all your variables are within the class. If you define them outside of the class, they will be global variables and the memory will not be managed by the OS. This will cause memory to be taken even if the application is not running.
 - If you use dynamic memory allocation, make sure to free the memory when the application is exiting. The OS can only recycle the static memory in the application stack, not the dynamic memory that you or your variables allocated.
-- If you used anything advanced, like threads, mutex, etc or hardware changes like peripheral configuration and start up. Make sure to clean them up or undo them when the application is exiting.
+- If you use threads, mutexes, peripheral configuration, or other hardware state, clean up or undo those changes when the application exits.
 

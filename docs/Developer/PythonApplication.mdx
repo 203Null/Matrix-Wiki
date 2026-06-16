@@ -2,42 +2,37 @@
 sidebar_position: 4
 ---
 
-# Code your application (Python)
+# Code Your Application (Python)
 
-:::warning Development Status
-Python support and Matrix OS API is in preview release for OS 3.0.
-We welcome community to play when them and report back any issue they see with them.
-:::
+## Ways to Use Python
 
-## Writing Python Apps
+### Matrix OS Developer Toolkit
 
-There are two ways to use Python for MatrixOS:
+Use [Matrix OS Developer Toolkit](./MatrixOSDeveloperToolkit) for the fastest edit-test loop. The Python panel can run short snippets and staged `.py` files before you copy an app to device storage.
 
-### Method 1: Python REPL - Testing & experimenting
-Use the Python app in the application launcher to access a Python REPL through USB serial. This is great for testing and rapid prototyping.
+### Python REPL
 
-### Method 2: Standalone Application - For saving and sharing
-Create a standalone Python application by placing your files in the device storage. This is great for saving your work and share with others.
+Open the Python app from the application launcher and connect over USB serial. The REPL is best for quick experiments, API exploration, and testing short snippets.
 
-:::warning Micro SD Card Required
-A Micro SD card must be installed in your device to use standalone Python applications. See [Install Micro SD Card](../Mystrix/InstallMicroSD) for installation instructions.
-:::
+### Standalone Python App
 
-## Creating a Standalone Application
+Create a folder app on device storage:
 
-### File Structure
-Place your application files in the device storage:
-```
+```text
 /MatrixOS/Applications/<appname>/
 ```
 
-Your application folder must contain:
-- Your Python script files (`.py`)
-- An `AppInfo.json` configuration file
+The folder must contain:
 
-### AppInfo.json
+- `AppInfo.json`
+- one or more `.py` files
+- the main file referenced by `appMainFile`
 
-The `AppInfo.json` file defines your application's metadata:
+:::warning Storage Required
+Standalone Python applications require device storage. On Mystrix devices, install a microSD card first. See [Install Micro SD Card](/docs/Mystrix/InstallMicroSD).
+:::
+
+## AppInfo.json
 
 ```json
 {
@@ -45,24 +40,108 @@ The `AppInfo.json` file defines your application's metadata:
   "author": "203 Systems",
   "color": [255, 0, 0],
   "version": 1,
-  "osMinimalVer": [3, 0, 0],
-  "appMainFile": "HelloWorld.py"
+  "osMinimalVer": [4, 0, 0],
+  "appMainFile": "main.py"
 }
 ```
 
-**Required fields:**
-- `name`: Your application's display name
-- `author`: Your name or organization
-- `color`: RGB color array [R, G, B] for the app icon (0-255)
-- `version`: Application version number
-- `osMinimalVer`: Minimum MatrixOS version required [major, minor, patch]
-- `appMainFile`: The main Python file to execute (can be `.py` for source code or `.py.a` for compiled Python code)
+Required fields:
 
-## Clear Compiled Byte Code
+- `name`: display name in Matrix OS
+- `author`: author or organization
+- `color`: app icon color as `[R, G, B]`
+- `version`: app version number
+- `osMinimalVer`: minimum Matrix OS version
+- `appMainFile`: Python file to run
 
-Matrix OS will auto pick compiled bytecode over raw .py files. So if you updated the .py file, make sure to delete the `/MatrixOS/Applications/<appname>/pikapython-api` folder to force recompile.
+## API Style
 
-## Example Applications
+Python APIs use `snake_case` names and Python values:
 
-For App examples, see:
-[https://github.com/203-Systems/Matrix-OS-Python-App-Examples](https://github.com/203-Systems/Matrix-OS-Python-App-Examples)
+- Colors are packed RGB integers or RGB/RGBW tuples.
+- Points are `(x, y)` tuples.
+- Input IDs are `(cluster_id, member_id)` tuples.
+- Input events and snapshots are dictionaries.
+- `MatrixOS.Input` provides keypad, touchbar, and other input events.
+
+## Minimal Example
+
+```python
+import MatrixOS
+
+MatrixOS.LED.clear()
+MatrixOS.LED.set_xy(0, 0, (255, 0, 0))
+MatrixOS.LED.update()
+```
+
+Expected result: LED `(0, 0)` turns red.
+
+## Input Example
+
+```python
+import MatrixOS
+
+for _ in range(100):
+    event = MatrixOS.Input.get_event(10)
+    if event:
+        point = event.get("point")
+        keypad = event.get("keypad")
+        if point and keypad and keypad["pressed"]:
+            MatrixOS.LED.set_xy(point[0], point[1], (255, 255, 255))
+            MatrixOS.LED.update()
+    MatrixOS.SYS.task_yield()
+```
+
+Expected result: during the short polling window, pressing a key lights the matching LED white.
+
+## Try It In Matrix OS Developer Toolkit
+
+1. Start Matrix OS Developer Toolkit from the MatrixOS repo.
+2. Open the WebUI and switch to the Python panel.
+3. Paste the minimal example or upload a `.py` file.
+4. Run the script and check the LED panel or Python output.
+
+For automation, the toolkit JSON-RPC bridge can run snippets with `python.runText`; see [Matrix OS Developer Toolkit](./MatrixOSDeveloperToolkit#json-rpc-bridge).
+
+## Deploy To A Device
+
+1. Create `/MatrixOS/Applications/<appname>/` on device storage.
+2. Copy `AppInfo.json` and `main.py` into that folder.
+3. Restart Matrix OS or reopen the application launcher so the app list refreshes.
+4. Launch the app from the application launcher.
+
+## Debug
+
+Use `print()` for app output and keep test loops bounded while debugging. See [Debug Your Application (Python)](./DebugMatrixOSPython).
+
+## Example Apps
+
+Matrix OS includes Python example apps in the MatrixOS source tree:
+
+- `Applications/Python/examples/dice`
+- `Applications/Python/examples/lighting`
+- `Applications/Python/examples/reversi`
+- `Applications/Python/examples/gomoku`
+- `Applications/Python/examples/pixel_art`
+- `Applications/Python/examples/same_game`
+- `Applications/Python/examples/runtime_probe`
+- `Applications/Python/examples/api_introspection`
+
+Use these examples as the source of truth for Python app structure and API style.
+
+## API Reference
+
+- [Python API Overview](./MatrixOSApplicationPythonAPI/Overview)
+- [SYS API](./MatrixOSApplicationPythonAPI/SYS)
+- [Color API](./MatrixOSApplicationPythonAPI/Color)
+- [Timer API](./MatrixOSApplicationPythonAPI/Timer)
+- [Input API](./MatrixOSApplicationPythonAPI/Input)
+- [LED API](./MatrixOSApplicationPythonAPI/LED)
+- [MIDI API](./MatrixOSApplicationPythonAPI/MIDI)
+- [NVS API](./MatrixOSApplicationPythonAPI/NVS)
+- [FileSystem API](./MatrixOSApplicationPythonAPI/FileSystem)
+- [Logging API](./MatrixOSApplicationPythonAPI/Logging)
+- [Utils API](./MatrixOSApplicationPythonAPI/Utils)
+- [USB API](./MatrixOSApplicationPythonAPI/USB)
+- [HID API](./MatrixOSApplicationPythonAPI/HID)
+- [UI API](./MatrixOSApplicationPythonAPI/UI)

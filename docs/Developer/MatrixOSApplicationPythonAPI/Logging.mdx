@@ -1,0 +1,18 @@
+---
+title: Logging
+sidebar_position: 8
+---
+
+# Logging API
+
+`MatrixOS.Logging` writes Matrix OS structured log messages.
+
+Methods:
+
+- `error(tag: str, message: str) -> None`
+- `warning(tag: str, message: str) -> None`
+- `info(tag: str, message: str) -> None`
+- `debug(tag: str, message: str) -> None`
+- `verbose(tag: str, message: str) -> None`
+
+`message` is a normal string, not a printf format string.

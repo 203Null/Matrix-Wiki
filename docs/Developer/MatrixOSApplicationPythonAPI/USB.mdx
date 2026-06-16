@@ -1,0 +1,26 @@
+---
+title: USB
+sidebar_position: 11
+---
+
+# USB API
+
+`MatrixOS.USB` exposes USB and CDC helpers.
+
+## `MatrixOS.USB`
+
+- `connected() -> bool`
+
+## `MatrixOS.USB.CDC`
+
+- `connected() -> bool`
+- `available() -> int`
+- `poll() -> None`
+- `print(text: str) -> None`
+- `println(text: str) -> None`
+- `flush() -> None`
+- `read() -> int | None`
+- `read_bytes(length: int) -> bytes`
+- `read_string() -> str`
+
+`read()` returns `None` when no data is available. `read_bytes(length)` reads up to `length` bytes and returns `b""` when no data is available.

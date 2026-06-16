@@ -1,0 +1,151 @@
+---
+sidebar_position: 0
+---
+
+# Matrix OS Developer Toolkit
+
+Matrix OS Developer Toolkit is the Matrix OS 4.0 software-in-the-loop runtime for development and testing. It builds Matrix OS to WebAssembly, runs it in a browser-hosted Mystrix-like device, and exposes developer tools for input, LED, MIDI, HID, serial, storage, Python, and system inspection.
+
+:::warning Matrix OS 4.0 beta
+Matrix OS Developer Toolkit is a beta developer tool. It is useful for API work, UI iteration, Python testing, and automation, but it is not a full replacement for testing on hardware.
+:::
+
+## Try It Online
+
+You can try Matrix OS Developer Toolkit at [dev.203.io](https://dev.203.io).
+
+## Requirements
+
+- Emscripten toolchain with `emcmake` and `emcc`
+- Node.js and npm
+- CMake
+- A shell that can run the MatrixOS Makefile
+
+On Windows, the toolkit helper can discover common Emscripten install locations such as `C:\emsdk`, `C:\Program Files\emsdk`, `%USERPROFILE%\emsdk`, and `%USERPROFILE%\Documents\emsdk`.
+
+## Setup
+
+From the Matrix OS repository:
+
+```powershell
+make DEVICE=MystrixSim setup
+```
+
+This configures the WebAssembly build and installs the WebUI dependencies.
+
+## Build
+
+```powershell
+make DEVICE=MystrixSim build-dev
+```
+
+The build produces the toolkit runtime JavaScript and WebAssembly files, validates the runtime package, and writes a local firmware package for the WebUI.
+
+Release automation publishes Matrix OS Developer Toolkit runtime bundles as `.msfw` files.
+
+## Run
+
+```powershell
+make DEVICE=MystrixSim run
+```
+
+This starts the Matrix OS Developer Toolkit WebUI development server.
+
+## WebUI Tools
+
+The Matrix OS Developer Toolkit WebUI includes panels for:
+
+- firmware source and runtime package loading
+- live input injection and state monitoring
+- LED framebuffer inspection
+- MIDI monitor and test send
+- HID and RawHID inspection
+- serial I/O
+- storage, NVS, and virtual filesystem inspection
+- Python REPL and uploaded `.py` script execution
+- system build metadata and runtime status
+- runtime logs
+
+## Firmware Packages
+
+Matrix OS Developer Toolkit uses `.msfw` runtime packages. A package contains the built `MatrixOSHost.js` and `MatrixOSHost.wasm` runtime assets plus metadata used by the WebUI.
+
+The WebUI can load local builds, packaged release assets, or proxied release assets depending on how it is served.
+
+## JSON-RPC Bridge
+
+When the WebUI runs in the node-backed dev server, it exposes a local WebSocket JSON-RPC bridge for automation. Static builds show the bridge as unavailable.
+
+The bridge is intended for local tooling and test automation. It can inspect runtime state and drive input, LED, log, MIDI, HID, serial, storage, and session operations through the live browser runtime.
+
+The default WebSocket endpoint is:
+
+```text
+ws://localhost:4002
+```
+
+You can override the port with `MATRIXOS_RPC_PORT`.
+
+The WebUI tab must stay open because the browser-hosted runtime is the active bridge target. If the tab is closed, external RPC clients will receive a runtime-unavailable error.
+
+Example RPC calls exposed by the WebUI include:
+
+- `bridge.status`
+- `session.status`
+- `session.ping`
+- `session.reset`
+- `runtime.getState`
+- `input.list`
+- `input.execute`
+- `input.releaseAll`
+- `led.getFrame`
+- `midi.listPorts`
+- `midi.send`
+- `log.get`
+- `python.status`
+- `python.runText`
+- `python.stageFiles`
+- `python.runStaged`
+- `python.getOutput`
+- `python.stop`
+
+### Check Bridge Status
+
+From the MatrixOS repo:
+
+```powershell
+node Devices/MystrixSim/WebUI/tools/rpc-test.mjs --ws ws://localhost:4002 --method bridge.status
+```
+
+### Run A Python Snippet
+
+```powershell
+node Devices/MystrixSim/WebUI/tools/rpc-test.mjs --ws ws://localhost:4002 --method python.runText --params '{"name":"docs_smoke.py","text":"import MatrixOS\nMatrixOS.LED.clear()\nMatrixOS.LED.set_xy(0,0,(255,0,0))\nMatrixOS.LED.update()\nprint(\"ok\")"}'
+```
+
+Read the output:
+
+```powershell
+node Devices/MystrixSim/WebUI/tools/rpc-test.mjs --ws ws://localhost:4002 --method python.getOutput --params '{"last":20}'
+```
+
+### Run Core Python Smoke Tests
+
+The Matrix OS Developer Toolkit WebUI includes smoke scripts for Python runtime checks:
+
+```powershell
+npm --prefix Devices/MystrixSim/WebUI run smoke:micropython -- --ws ws://localhost:4002 --suite core
+```
+
+Use the full example suite when you are validating the MatrixOS source tree itself. The example suite can fail because of an example app or simulator regression even when your own snippet runs correctly.
+
+## Python Testing
+
+The Python panel can enter the built-in Python REPL or stage a `.py` file and run it as a Python app. This is useful for checking Matrix OS Python APIs before copying an app to device storage.
+
+## Limitations
+
+- Hardware timing is simulated.
+- USB, HID, MIDI, serial, storage, and input behavior are routed through host-side shims.
+- Some panels expose planned or partial beta functionality.
+- Always verify hardware-dependent behavior on a real Mystrix device before release.

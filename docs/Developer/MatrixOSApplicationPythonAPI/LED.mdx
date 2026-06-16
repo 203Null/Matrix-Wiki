@@ -1,239 +1,59 @@
 ---
-sidebar_position: 2
+title: LED
+sidebar_position: 4
 ---
-import GithubLink from '@site/src/components/GithubLink/GithubLink';
 
 # LED API
 
-## Preview notice
-The MatrixOS Python API is in preview and is subject to change; it may contain errors.
+`MatrixOS.LED` draws to the Matrix OS LED system from Python.
 
+## Drawing
 
-## Overview
-
-The LED system in MatrixOS provides control over the 8x8 LED matrix with layer support, real-time updates, and cross-fade animations. The LED API is available as `MatrixOS.LED` and is imported by default.
-
-For some LED functions, you can specify a layer ID. If you don't specify a layer ID, the API will use layer 255 (the topmost layer). Changes only take effect when you call `Update()`.
-
-For immediate updates, write to layer 0 (the active buffer). Changes render immediately unless paused with `PauseUpdate(True)`. This is ideal for real-time effects but may cause flickering.
-
-*The Python LED API is implemented in <GithubLink path="Applications/Python/PikaPython/MatrixOS_LED.py"/> with type hints in <GithubLink path="Applications/Python/PikaPython/_MatrixOS_LED.pyi"/>.*
-
-## Constants
-
-The LED API uses the following predefined constants:
-
-- `CURRENT_LAYER = 255` - Refers to the current active layer when no layer is specified
-- `CROSSFADE_DURATION = 200` - Default crossfade duration in milliseconds
-
----
-
-## `MatrixOS.LED.NextBrightness`
 ```python
-def NextBrightness() -> None
+import MatrixOS
+
+MatrixOS.LED.clear()
+MatrixOS.LED.set_xy(3, 3, (255, 0, 0))
+MatrixOS.LED.update()
 ```
 
-Cycles to the next predefined brightness level for the LEDs.
+Methods:
 
+- `clear(layer: int = 255) -> None`
+- `fill(color: ColorLike, layer: int = 255) -> None`
+- `set_xy(x: int, y: int, color: ColorLike, layer: int = 255) -> None`
+- `set_index(index: int, color: ColorLike, layer: int = 255) -> None`
+- `fill_partition(name: str, color: ColorLike, layer: int = 255) -> bool`
+- `update(layer: int = 255) -> None`
 
----
+`ColorLike` can be a packed RGB integer or an RGB/RGBW tuple.
 
-## `MatrixOS.LED.SetBrightness`
-```python
-def SetBrightness(brightness: int) -> None
-```
+`set_xy()` uses signed XY coordinates. Mystrix perimeter LEDs can use coordinates such as `x=-1`, `x=8`, `y=-1`, or `y=8`.
 
-Sets the brightness level of the LEDs.
+## Brightness and Layers
 
-**Parameters:**
-- `brightness` (`int`): Brightness level (0-255)
+- `next_brightness() -> None`
+- `set_brightness(value: int) -> None`
+- `set_brightness_multiplier(partition: str, multiplier_milli: int) -> bool`
+- `current_layer() -> int`
+- `create_layer(crossfade: int = default) -> int`
+- `copy_layer(dest: int, src: int) -> None`
+- `destroy_layer(crossfade: int = default) -> bool`
+- `fade(crossfade: int = default) -> None`
+- `pause_update(paused: bool = True) -> None`
 
+`set_brightness_multiplier()` uses integer milli-ratio values. `1000` means `1.0`; `500` means `0.5`.
 
----
+## Partition Queries
 
-## `MatrixOS.LED.SetBrightnessMultiplier`
-```python
-def SetBrightnessMultiplier(partition_name: str, multiplier: float) -> bool
-```
+- `count() -> int`
+- `partitions() -> list[dict]`
+- `get_partition(index_or_name: int | str) -> dict | None`
 
-Applies a brightness multiplier to a specific LED partition.
+Partition dictionaries include:
 
-**Parameters:**
-- `partition_name` (`str`): Name of the partition to modify
-- `multiplier` (`float`): Brightness multiplier
-
-**Returns:**
-- `bool`: True if successful
-
-
----
-
-## `MatrixOS.LED.SetColor`
-```python
-def SetColor(xy: Point, color: Color, layer: int = CURRENT_LAYER) -> None
-```
-
-Sets the color of a specific LED at coordinates (x, y).
-
-**Parameters:**
-- `xy` (`Point`): LED coordinates (0-7 for both x and y)
-- `color` (`Color`): Color to set
-- `layer` (`int`, optional): Layer ID to write to (defaults to CURRENT_LAYER)
-
-
----
-
-## `MatrixOS.LED.SetColorByID`
-```python
-def SetColorByID(id: int, color: Color, layer: int = CURRENT_LAYER) -> None
-```
-
-Sets the color of an LED by its ID (0-63 for 8x8 matrix).
-
-**Parameters:**
-- `id` (`int`): LED ID (0-63)
-- `color` (`Color`): Color to set
-- `layer` (`int`, optional): Layer ID to write to (defaults to CURRENT_LAYER)
-
-
----
-
-## `MatrixOS.LED.Fill`
-```python
-def Fill(color: Color, layer: int = CURRENT_LAYER) -> None
-```
-
-Fills all LEDs with the specified color.
-
-**Parameters:**
-- `color` (`Color`): Color to fill with
-- `layer` (`int`, optional): Layer ID to write to (defaults to CURRENT_LAYER)
-
-
----
-
-## `MatrixOS.LED.FillPartition`
-```python
-def FillPartition(partition: str, color: Color, layer: int = CURRENT_LAYER) -> bool
-```
-
-Fills a specific LED partition with the specified color.
-
-**Parameters:**
-- `partition` (`str`): Partition name (e.g., "keypad", "function")
-- `color` (`Color`): Color to fill with
-- `layer` (`int`, optional): Layer ID to write to (defaults to CURRENT_LAYER)
-
-**Returns:**
-- `bool`: True if successful
-
-
----
-
-## `MatrixOS.LED.Update`
-```python
-def Update(layer: int = CURRENT_LAYER) -> None
-```
-
-Updates the specified layer, making changes visible on the device.
-
-**Parameters:**
-- `layer` (`int`, optional): Layer ID to update (defaults to CURRENT_LAYER)
-
-
----
-
-## `MatrixOS.LED.CurrentLayer`
-```python
-def CurrentLayer() -> int
-```
-
-Returns the current active layer ID.
-
-**Returns:**
-- `int`: Current layer ID
-
----
-
-## `MatrixOS.LED.CreateLayer`
-```python
-def CreateLayer(crossfade: int = CROSSFADE_DURATION) -> int
-```
-
-Creates a new LED layer with optional crossfade animation.
-
-**Parameters:**
-- `crossfade` (`int`, optional): Crossfade duration in milliseconds (defaults to CROSSFADE_DURATION)
-
-**Returns:**
-- `int`: New layer ID
-
-
----
-
-## `MatrixOS.LED.CopyLayer`
-```python
-def CopyLayer(dest: int, src: int) -> None
-```
-
-Copies the contents of one layer to another.
-
-**Parameters:**
-- `dest` (`int`): Destination layer ID
-- `src` (`int`): Source layer ID
-
----
-
-## `MatrixOS.LED.DestroyLayer`
-```python
-def DestroyLayer(crossfade: int = CROSSFADE_DURATION) -> bool
-```
-
-Destroys the current layer with optional crossfade animation.
-
-**Parameters:**
-- `crossfade` (`int`, optional): Crossfade duration in milliseconds (defaults to CROSSFADE_DURATION)
-
-**Returns:**
-- `bool`: True if successful
-
----
-
-## `MatrixOS.LED.Fade`
-```python
-def Fade(crossfade: int = CROSSFADE_DURATION) -> None
-```
-
-Applies a fade effect with specified duration.
-
-**Parameters:**
-- `crossfade` (`int`, optional): Fade duration in milliseconds (defaults to CROSSFADE_DURATION)
-
----
-
-## `MatrixOS.LED.PauseUpdate`
-```python
-def PauseUpdate(pause: bool = True) -> None
-```
-
-Pauses or resumes LED updates.
-
-**Parameters:**
-- `pause` (`bool`, optional): True to pause, False to resume (defaults to True)
-
-
----
-
-## `MatrixOS.LED.GetLEDCount`
-```python
-def GetLEDCount() -> int
-```
-
-Returns the total number of LEDs on the device.
-
-**Returns:**
-- `int`: Number of LEDs (typically 64 for 8x8 matrix)
-
----
-
-
+- `name: str`
+- `start: int`
+- `size: int`
+- `type: int`
+- `default_multiplier: int`

@@ -1,0 +1,26 @@
+---
+title: Timer
+sidebar_position: 3
+---
+
+# Timer API
+
+`MatrixOS.Timer()` creates a lightweight loop timer object.
+
+```python
+import MatrixOS
+
+timer = MatrixOS.Timer()
+
+if timer.tick(100):
+    print("100 ms tick")
+```
+
+Methods:
+
+- `tick(ms: int, first_tick: bool = True) -> bool`
+- `is_longer(ms: int) -> bool`
+- `since_last_tick() -> int`
+- `record_current() -> None`
+
+Time values are in milliseconds.

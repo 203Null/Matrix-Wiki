@@ -1,0 +1,153 @@
+---
+sidebar_position: 5
+---
+
+# Input API
+
+Python apps use `MatrixOS.Input` for keypad, touchbar, and future input types.
+
+## Data Model
+
+- `InputId`: a tuple `(cluster_id, member_id)`.
+- Point: a tuple `(x, y)`.
+- Event and snapshot values are dictionaries.
+- Keypad data is stored under the `keypad` field when the input class is keypad.
+
+## Events
+
+```python
+import MatrixOS
+
+event = MatrixOS.Input.get_event(timeout_ms=0)
+```
+
+Returns the next input event dict, or `None` when no event is available.
+
+```python
+import MatrixOS
+
+for _ in range(100):
+    event = MatrixOS.Input.get_event(10)
+    if event:
+        point = event.get("point")
+        keypad = event.get("keypad")
+        if point and keypad and keypad["pressed"]:
+            MatrixOS.LED.set_xy(point[0], point[1], (255, 255, 255))
+            MatrixOS.LED.update()
+    MatrixOS.SYS.task_yield()
+```
+
+This bounded loop is useful for quick tests. In a standalone app, put the same event polling pattern in the app loop.
+
+Event dictionaries include:
+
+- `id`: `(cluster_id, member_id)`
+- `input_class`: numeric input class
+- `point`: `(x, y)` or `None`
+- `keypad`: keypad data for keypad inputs
+
+Keypad dictionaries include:
+
+- `state`
+- `pressed`
+- `released`
+- `hold`
+- `aftertouch`
+- `pressure`
+- `velocity`
+
+## Current State
+
+```python
+import MatrixOS
+
+input_id = MatrixOS.Input.function_key()
+snapshot = MatrixOS.Input.get_state(input_id)
+```
+
+Returns a snapshot dict or `None`.
+
+```python
+import MatrixOS
+
+fn = MatrixOS.Input.function_key()
+state = MatrixOS.Input.get_state(fn)
+if state and state["keypad"]["pressed"]:
+    MatrixOS.SYS.open_setting()
+```
+
+## Clusters
+
+```python
+import MatrixOS
+
+clusters = MatrixOS.Input.clusters()
+cluster = MatrixOS.Input.get_cluster(1)
+cluster = MatrixOS.Input.get_cluster("Grid")
+primary = MatrixOS.Input.primary_grid_cluster()
+```
+
+Cluster dictionaries include:
+
+- `id`
+- `name`
+- `input_class`
+- `input_class_name`
+- `shape`
+- `shape_name`
+- `root_point`
+- `dimension`
+- `input_count`
+
+## Position Mapping
+
+```python
+import MatrixOS
+
+primary = MatrixOS.Input.primary_grid_cluster()
+input_id = MatrixOS.Input.get_input_at(primary["id"], (0, 0))
+ids = MatrixOS.Input.get_inputs_at((0, 0))
+point = MatrixOS.Input.try_get_point(input_id)
+```
+
+Use these helpers instead of assuming an 8x8 key ID layout.
+
+## Keypad Capabilities
+
+```python
+import MatrixOS
+
+primary = MatrixOS.Input.primary_grid_cluster()
+caps = MatrixOS.Input.get_keypad_capabilities(primary["id"])
+```
+
+The returned dict includes:
+
+- `has_pressure`
+- `has_aftertouch`
+- `has_velocity`
+- `has_position`
+
+## Clearing Input
+
+```python
+import MatrixOS
+
+MatrixOS.Input.clear()
+```
+
+Clears pending input events and suppresses active inputs until the next press. Use it after leaving a modal UI or after intentionally consuming a key combo.
+
+## Common Operations
+
+| Task | API |
+| --- | --- |
+| Read the next event | `MatrixOS.Input.get_event()` |
+| Read state at a point | `get_input_at(...)` then `get_state(...)` |
+| Convert a point to an input ID | `MatrixOS.Input.get_input_at(cluster, point)` |
+| Convert an input ID to a point | `MatrixOS.Input.try_get_point(input_id)` |
+| Clear pending input | `MatrixOS.Input.clear()` |
+| Event data | event dict |
+| Keypad data | `event["keypad"]` or `snapshot["keypad"]` dict |
+
+Python APIs use `snake_case`.

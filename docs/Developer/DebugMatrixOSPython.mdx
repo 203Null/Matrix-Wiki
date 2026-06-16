@@ -4,240 +4,112 @@ sidebar_position: 6
 
 # Debug Your Application (Python)
 
-## Python Application Debugging Overview
+Python app debugging in Matrix OS usually starts with `print()` output, then moves to the Matrix OS Developer Toolkit when you need repeatable input, LED, storage, or RPC-driven tests.
 
-Debugging Python applications in MatrixOS primarily involves using print statements. Since Python applications run in the PikaPython interpreter, the print function is your main tool for understanding program flow and variable states.
+## Where Output Appears
 
-## Print Debugging
+- In Matrix OS Developer Toolkit, use the Python panel output and runtime logs.
+- On hardware, use the Python REPL or app serial output.
+- For automation, use the toolkit JSON-RPC bridge and read output with `python.getOutput`.
 
-The print function is the primary debugging tool for Python applications in MatrixOS. Use print statements strategically to understand program flow and variable states.
+## Minimal Debug Pattern
 
-### Basic Print Usage
 ```python
-def my_function():
-    print("Starting function")
+import MatrixOS
 
-    # Your code here
-    result = some_calculation()
-    print(f"Calculation result: {result}")
+print("app start")
 
-    return result
+MatrixOS.LED.clear()
+MatrixOS.LED.set_xy(0, 0, (255, 0, 0))
+MatrixOS.LED.update()
 
-# Debug variable values
-value = 42
-print(f"Debug: value = {value}")
+print("lit 0,0 red")
 ```
 
-### Tracking Program Flow
+Expected result: the app prints both messages and lights the first LED red.
+
+## Debug Input
+
 ```python
-def complex_operation():
-    print("Step 1: Initializing")
-    # initialization code
+import MatrixOS
 
-    print("Step 2: Processing data")
-    # processing code
+print("waiting for one input event")
 
-    print("Step 3: Finalizing")
-    # finalization code
-
-    print("Operation complete")
-```
-
-### Debugging Variables
-```python
-# Print variable types and values
-my_variable = 123
-print(f"Variable type: {type(my_variable)}, value: {my_variable}")
-
-# Print multiple values
-x, y = 5, 10
-print(f"Coordinates: x={x}, y={y}")
-
-# Print list/array contents
-my_list = [1, 2, 3, 4, 5]
-print(f"List contents: {my_list}")
-```
-
-### Debugging Loops
-```python
-# Track loop iterations
-for i in range(5):
-    print(f"Loop iteration: {i}")
-    # Your loop code here
-
-# Debug while loops
-counter = 0
-while counter < 3:
-    print(f"While loop: counter = {counter}")
-    counter += 1
-```
-
-### Debugging Functions
-```python
-def calculate(a, b):
-    print(f"Function called with a={a}, b={b}")
-    result = a + b
-    print(f"Returning result: {result}")
-    return result
-
-# Call the function
-answer = calculate(3, 4)
-print(f"Final answer: {answer}")
-```
-
-### Debugging MatrixOS API Calls
-```python
-# Debug LED operations
-print("Setting LED color")
-MatrixOS.LED.SetColor(Point(3, 3), Color(255, 0, 0), 255)
-print("LED color set, updating display")
-MatrixOS.LED.Update(255)
-print("Display updated")
-
-# Debug keypad events
-key_event = MatrixOS.KeyPad.Get(1000)
-if key_event is not None:
-    print(f"Key pressed at position ({key_event.xy.x}, {key_event.xy.y})")
+event = MatrixOS.Input.get_event(5000)
+if event is None:
+    print("no input event")
 else:
-    print("No key pressed")
-
-# Debug timing
-start_time = MatrixOS.SYS.Millis()
-# Your code here
-end_time = MatrixOS.SYS.Millis()
-print(f"Operation took {end_time - start_time} milliseconds")
+    point = event.get("point")
+    keypad = event.get("keypad", {})
+    print("event id=", event.get("id"))
+    print("point=", point)
+    print("keypad=", keypad)
 ```
 
-### Debugging Conditional Logic
-```python
-def check_value(value):
-    print(f"Checking value: {value}")
+Expected result: pressing a key prints the event ID, point, and keypad data. If no event arrives within the timeout, the script prints `no input event`.
 
-    if value < 0:
-        print("Value is negative")
-    elif value == 0:
-        print("Value is zero")
-    else:
-        print("Value is positive")
+## Debug A Short Loop
 
-    return value
-```
-
-### Formatted Output for Clarity
-```python
-# Use separators for clarity
-print("=" * 30)
-print("Starting Debug Section")
-print("=" * 30)
-
-# Format numbers
-value = 3.14159
-print(f"Pi value: {value:.2f}")  # Two decimal places
-
-# Align output
-for i in range(3):
-    print(f"Item {i:2d}: {'Active' if i > 0 else 'Inactive'}")
-```
-
-## Best Practices for Print Debugging
-
-1. **Be Descriptive**: Make print messages clear and informative
-   ```python
-   # Good
-   print(f"Processing key at position ({x}, {y})")
-
-   # Less helpful
-   print("here")
-   ```
-
-2. **Include Context**: Show what part of the code is executing
-   ```python
-   print("MainLoop: Checking for key events")
-   ```
-
-3. **Show Variable States**: Include relevant variable values
-   ```python
-   print(f"LED brightness set to {brightness}/255")
-   ```
-
-4. **Use Consistent Formatting**: Make output easy to read
-   ```python
-   print(f"[INFO] System ready")
-   print(f"[ERROR] Failed to initialize")
-   print(f"[DEBUG] Variable x = {x}")
-   ```
-
-5. **Track Entry and Exit**: Show when functions start and end
-   ```python
-   def my_function():
-       print(">>> Entering my_function")
-       # function code
-       print("<<< Exiting my_function")
-   ```
-
-## Example: Complete Debug Session
-
-Here's a practical example showing effective print debugging:
+Keep debug loops bounded while testing from the toolkit so the script can finish and RPC output can be collected.
 
 ```python
-def interactive_app():
-    """Example application with comprehensive print debugging"""
+import MatrixOS
 
-    print("=" * 40)
-    print("Application Starting")
-    print("=" * 40)
+for i in range(20):
+    event = MatrixOS.Input.get_event(50)
+    if event:
+        point = event.get("point")
+        keypad = event.get("keypad", {})
+        print("input", i, point, keypad)
 
-    # Initialize
-    print("Initializing LED display...")
-    MatrixOS.LED.Fill(Color(0, 0, 0), 0)
-    MatrixOS.LED.Update(0)
-    print("LED display initialized")
+        if point and keypad.get("pressed"):
+            MatrixOS.LED.set_xy(point[0], point[1], (255, 255, 255))
+            MatrixOS.LED.update()
 
-    # Main loop
-    print("Entering main loop")
-    loop_count = 0
+    MatrixOS.SYS.task_yield()
 
-    while loop_count < 10:
-        print(f"\n--- Loop iteration {loop_count} ---")
-
-        # Check for input
-        print("Checking for key press...")
-        key_event = MatrixOS.KeyPad.Get(100)
-
-        if key_event is not None:
-            x = key_event.xy.x
-            y = key_event.xy.y
-            print(f"Key detected at ({x}, {y})")
-
-            # Process the key
-            if key_event.info.state == 1:
-                print(f"  Key pressed - lighting LED")
-                MatrixOS.LED.SetColor(Point(x, y), Color(255, 0, 0), 255)
-                MatrixOS.LED.Update(255)
-            elif key_event.info.state == 2:
-                print(f"  Key released - turning off LED")
-                MatrixOS.LED.SetColor(Point(x, y), Color(0, 0, 0), 0)
-                MatrixOS.LED.Update(0)
-        else:
-            print("No key press detected")
-
-        loop_count += 1
-        print(f"Loop {loop_count} complete")
-
-    print("\n" + "=" * 40)
-    print("Application Ending")
-    print("=" * 40)
-
-# Run the app
-interactive_app()
+print("loop done")
 ```
 
-## Tips for Effective Print Debugging
+Expected result: the script polls input briefly, prints any events it receives, and exits cleanly.
 
-- **Start Simple**: Add prints one at a time to isolate issues
-- **Remove When Done**: Clean up debug prints after fixing issues
-- **Use Meaningful Labels**: Make it clear what each print represents
-- **Watch for Timing**: Too many prints can affect program timing
-- **Check Output Frequency**: Avoid flooding output in fast loops
+## Debug Storage
 
-Remember: Print debugging is simple but powerful. Well-placed print statements can quickly reveal what your program is doing and help identify where issues occur.
+```python
+import MatrixOS
+
+if MatrixOS.FileSystem.available():
+    with open("debug.txt", "w") as f:
+        f.write("hello from Matrix OS\n")
+    print("wrote debug.txt")
+else:
+    print("filesystem unavailable")
+```
+
+Expected result: the app either writes `debug.txt` in the app sandbox or reports that filesystem storage is unavailable.
+
+## Common Problems
+
+| Symptom | Likely Cause | Check |
+| --- | --- | --- |
+| `NameError: MatrixOS` | Missing import | Add `import MatrixOS` at the top. |
+| No LED change | Missing `update()` | Call `MatrixOS.LED.update()` after drawing. |
+| No input events | Wrong app/view or no injected input | Use the toolkit input panel or press hardware keys while the Python app is active. |
+| Script never finishes in RPC tests | Infinite loop | Use a bounded loop for smoke tests, then switch to long-running app logic later. |
+| File writes fail | Storage unavailable | Check `MatrixOS.FileSystem.available()` first. |
+
+## Toolkit RPC Smoke Test
+
+With Matrix OS Developer Toolkit running and the WebUI tab open, use the JSON-RPC bridge to run a short script:
+
+```powershell
+node Devices/MystrixSim/WebUI/tools/rpc-test.mjs --ws ws://localhost:4002 --method python.runText --params '{"name":"docs_smoke.py","text":"import MatrixOS\nMatrixOS.LED.clear()\nMatrixOS.LED.set_xy(0,0,(255,0,0))\nMatrixOS.LED.update()\nprint(\"ok\")"}'
+```
+
+Then read output:
+
+```powershell
+node Devices/MystrixSim/WebUI/tools/rpc-test.mjs --ws ws://localhost:4002 --method python.getOutput --params '{"last":20}'
+```
+
+If the script starts but prints a traceback, treat it as a docs/example bug first. If the bridge reports that the runtime is unavailable, open or reload the toolkit WebUI tab.

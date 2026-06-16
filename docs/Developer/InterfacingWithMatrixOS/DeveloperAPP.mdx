@@ -1,0 +1,51 @@
+---
+title: Developer APP
+sidebar_position: 2
+---
+
+# Developer APP
+
+The Developer APP is an on-device tool for interactive testing and external control. It exposes a focused HID/SysEx protocol for tooling that needs live input reports, LED writes, and basic app-session control.
+
+:::warning Matrix OS 4.0 beta
+The Developer APP protocol is still evolving during the beta.
+:::
+
+## Protocol Commands
+
+| Command | ID | Purpose |
+| --- | --- | --- |
+| `PING` | `0x00` | Returns protocol/version information. |
+| `SET_INPUT_REPORT` | `0x01` | Enable input reports. |
+| `EXIT_APP` | `0x02` | Exit the Developer APP. |
+| `LED_WRITE_INDEX` | `0x10` | Write one LED by index. |
+| `LED_WRITE_XY` | `0x11` | Write one LED by coordinate. |
+| `LED_WRITE_INDEX_RANGE` | `0x12` | Write a range of LEDs. |
+| `LED_CANVAS_UPDATE` | `0x20` | Push LED canvas changes. |
+| `LED_CLEAR_SCREEN` | `0x21` | Clear the LED canvas/screen. |
+| `KEY_READ_INDEX` | `0x30` | Read key state by index. |
+| `KEY_READ_XY` | `0x31` | Read key state by coordinate. |
+
+Replies:
+
+- `0x80`: ACK
+- `0x81`: error
+- `0x90`: input event report
+
+Status/error codes:
+
+- `0x00`: OK
+- `0x02`: bad length
+- `0x03`: bad payload
+- `0x7F`: unknown command
+
+Input reporting modes:
+
+- `0x00`: all reports
+- `0x01`: key info reports
+
+LED color modes:
+
+- `0x00`: RGB24
+- `0x01`: RGBW32
+- `0x02`: RGB565

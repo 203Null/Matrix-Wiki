@@ -1,0 +1,82 @@
+---
+title: System Remote API
+sidebar_position: 1
+---
+
+# System Remote API
+
+The System Remote API is a Matrix OS protocol for tooling, simulators, and host applications. It is used by Matrix OS Developer Toolkit workflows and external tools to inspect input, write LEDs, and trigger basic Matrix OS actions.
+
+:::warning Matrix OS 4.0 beta
+The System Remote API is a beta developer protocol. Command IDs are documented here to help tool authors experiment, but the protocol may still change before a stable 4.0 release.
+:::
+
+## Transports
+
+The shared command handler supports MIDI SysEx 7-bit payloads and HID reports. Transport framing differs, but command IDs are kept consistent where possible.
+
+## System Commands
+
+| Command | ID | Purpose |
+| --- | --- | --- |
+| `GET_OS_VERSION` | `0x00` | Read Matrix OS version fields. |
+| `GET_DEVICE_NAME` | `0x01` | Read device name. |
+| `GET_DEVICE_MODEL_ID` | `0x02` | Read model ID. |
+| `GET_DEVICE_SERIAL` | `0x03` | Read device serial. |
+| `GET_DEVICE_ID` | `0x04` | Read device ID. |
+| `GET_DEVICE_SIZE` | `0x05` | Read primary device size. |
+| `GET_DEVICE_LED_COUNT` | `0x06` | Read LED count. |
+| `SET_DEVICE_ID` | `0x0B` | Set device ID. |
+
+## App Commands
+
+| Command | ID | Purpose |
+| --- | --- | --- |
+| `GET_APP_ID` | `0x10` | Read active app ID. |
+| `GET_APP_NAME` | `0x11` | Read active app name. |
+| `GET_APP_AUTHOR` | `0x12` | Read active app author. |
+| `GET_APP_VERSION` | `0x13` | Read active app version. |
+| `ENTER_APP_VIA_ID` | `0x18` | Enter an app by ID. Returns ACK. |
+| `QUIT_APP` | `0x1F` | Quit the active app. Returns ACK. |
+
+## System Action Commands
+
+| Command | ID | Purpose |
+| --- | --- | --- |
+| `BOOTLOADER` | `0x40` | Enter bootloader. Returns ACK. |
+| `REBOOT` | `0x41` | Reboot. Returns ACK. |
+| `SLEEP` | `0x42` | Sleep briefly. Returns ACK. |
+| `OPEN_SETTINGS` | `0x43` | Open system settings. Returns ACK. |
+| `FACTORY_RESET` | `0x4F` | Factory reset flow with confirmation. |
+
+## LED Commands
+
+| Command | ID | Purpose |
+| --- | --- | --- |
+| `LED_SET_COLOR_XY` | `0x50` | Set LED color by coordinate. |
+| `LED_SET_COLOR_ID` | `0x51` | Set LED color by LED index. |
+| `LED_FILL` | `0x52` | Fill LEDs. |
+| `LED_FILL_PARTITION` | `0x53` | Fill a partition. |
+| `LED_UPDATE` | `0x54` | Update LED output. |
+| `LED_CREATELAYER` | `0x55` | Create a layer. |
+| `LED_COPYLAYER` | `0x56` | Copy one layer to another. |
+| `LED_DESTROYLAYER` | `0x57` | Destroy a layer. |
+| `LED_SET_BRIGHTNESS` | `0x59` | Set brightness. |
+| `LED_FADE` | `0x5A` | Fade layer output. |
+| `GET_LED_CURRENT_LAYER` | `0x5C` | Read current layer. |
+| `GET_LED_BRIGHTNESS` | `0x5D` | Read brightness. |
+
+## Input Read Commands
+
+| Command | ID | Purpose |
+| --- | --- | --- |
+| `KEYPAD_GET_KEY_XY` | `0x60` | Read keypad state by coordinate. |
+| `KEYPAD_GET_KEY_ID` | `0x61` | Read keypad state by ID. |
+
+The command names use `KEYPAD` for these reports, while Matrix OS resolves state through the Input system.
+
+## Tooling Notes
+
+- Use command ACK replies instead of assuming a command completed synchronously.
+- Use the Input API model for new tooling even when command names say `KEYPAD`.
+- For local automation against Matrix OS Developer Toolkit, prefer the toolkit JSON-RPC bridge when it is available.

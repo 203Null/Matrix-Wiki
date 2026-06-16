@@ -1,0 +1,20 @@
+---
+title: Color
+sidebar_position: 2
+---
+
+# Color API
+
+`MatrixOS.Color(...)` creates a packed RGB integer.
+
+```python
+import MatrixOS
+
+red = MatrixOS.Color(255, 0, 0)
+green = MatrixOS.Color((0, 255, 0))
+white = MatrixOS.Color(255, 255, 255, 0)
+```
+
+The current public return value is RGB only, even when RGBW input is accepted.
+
+Color values are accepted by LED and UI APIs as packed RGB integers or RGB/RGBW tuples.

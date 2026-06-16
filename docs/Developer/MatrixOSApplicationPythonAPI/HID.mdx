@@ -1,0 +1,40 @@
+---
+title: HID
+sidebar_position: 12
+---
+
+# HID API
+
+`MatrixOS.HID` exposes keyboard, gamepad, and RawHID helpers.
+
+## `MatrixOS.HID.Keyboard`
+
+- `tap(keycode: int, length_ms: int = 100) -> bool`
+- `press(keycode: int) -> bool`
+- `release(keycode: int) -> bool`
+- `release_all() -> None`
+
+## `MatrixOS.HID.Gamepad`
+
+- `tap(button_id: int, length_ms: int = 100) -> None`
+- `press(button_id: int) -> None`
+- `release(button_id: int) -> None`
+- `release_all() -> None`
+- `button(button_id: int, state: bool) -> None`
+- `buttons(button_mask: int) -> None`
+- `x_axis(value: int) -> None`
+- `y_axis(value: int) -> None`
+- `z_axis(value: int) -> None`
+- `rx_axis(value: int) -> None`
+- `ry_axis(value: int) -> None`
+- `rz_axis(value: int) -> None`
+- `dpad(direction: int) -> None`
+
+Axis values use native int16 range: `-32768..32767`. Values outside the range are clamped by the binding.
+
+## `MatrixOS.HID.RawHID`
+
+- `get(timeout_ms: int = 0) -> bytes | None`
+- `send(data: bytes) -> bool`
+
+`RawHID.get()` returns `None` when no report is available. When a report is received, it returns the actual report bytes.

@@ -1,73 +1,104 @@
 ---
-sidebar_position: 4
+title: MIDI
+sidebar_position: 10
 ---
-import GithubLink from '@site/src/components/GithubLink/GithubLink';
 
 # MIDI API
 
-## Preview notice
-The MatrixOS Python API is in preview and is subject to change; it may contain errors.
+`MatrixOS.MIDI` uses a Pythonic `MidiPacket` object and `snake_case` methods.
 
+## Module Methods
 
-## Overview
+- `get(timeout_ms=0) -> MidiPacket | None`
+- `send(packet, port=MIDI.PORT_EACH_CLASS, timeout_ms=0) -> bool`
+- `send_sysex(port, data, include_meta=True) -> bool`
+- `is_note_on(packet) -> bool`
+- `is_note_off(packet) -> bool`
 
-The MIDI system in MatrixOS provides communication with external MIDI devices and software. It supports standard MIDI messages, SysEx data, and handles multiple MIDI ports. The MIDI API is available as `MatrixOS.MIDI` and is imported by default.
+`is_note_on()` returns true only for note-on packets with velocity greater than `0`.
 
-*The Python MIDI API is implemented in <GithubLink path="Applications/Python/PikaPython/MatrixOS_MIDI.py"/> with type hints in <GithubLink path="Applications/Python/PikaPython/_MatrixOS_MIDI.pyi"/>.*
+`is_note_off()` accepts both real note-off packets and the common note-on with velocity `0` form.
 
----
+## Packet Factories
 
-## `MatrixOS.MIDI.Get`
-```python
-def Get(timeout_ms: int = 0) -> any
-```
+- `note_on(channel, note, velocity) -> MidiPacket`
+- `note_off(channel, note, velocity) -> MidiPacket`
+- `aftertouch(channel, note, pressure) -> MidiPacket`
+- `control_change(channel, controller, value) -> MidiPacket`
+- `program_change(channel, program) -> MidiPacket`
+- `channel_pressure(channel, pressure) -> MidiPacket`
+- `pitch_bend(channel, value) -> MidiPacket`
+- `song_position(position) -> MidiPacket`
+- `song_select(song) -> MidiPacket`
+- `mtc_quarter_frame(value) -> MidiPacket`
+- `tune_request() -> MidiPacket`
+- `clock() -> MidiPacket`
+- `tick() -> MidiPacket`
+- `start() -> MidiPacket`
+- `continue_() -> MidiPacket`
+- `stop() -> MidiPacket`
+- `active_sense() -> MidiPacket`
+- `reset() -> MidiPacket`
 
-Receives the next MIDI packet from the input queue.
+`continue` is a Python keyword, so the factory is named `continue_()`.
 
-**Parameters:**
-- `timeout_ms` (`int`, optional): Timeout in milliseconds to wait for MIDI data (defaults to 0 for no timeout)
+## `MidiPacket`
 
-**Returns:**
-- `MidiPacket`: MIDI packet object on success
-- `None`: On timeout or no data available
+- `status() -> int`
+- `set_status(status: int) -> bool`
+- `port() -> int`
+- `set_port(port: int) -> None`
+- `channel() -> int | None`
+- `set_channel(channel: int) -> bool`
+- `note() -> int | None`
+- `set_note(note: int) -> bool`
+- `controller() -> int | None`
+- `set_controller(controller: int) -> bool`
+- `velocity() -> int | None`
+- `set_velocity(velocity: int) -> bool`
+- `value() -> int | None`
+- `set_value(value: int) -> bool`
+- `length() -> int`
+- `is_sysex() -> bool`
+- `is_sysex_start() -> bool`
+- `data() -> tuple[int, int, int]`
 
+`channel` is `0..15`. Seven-bit MIDI data is `0..127`. Pitch bend and song position use `0..16383`.
 
----
+## Status Constants
 
-## `MatrixOS.MIDI.Send`
-```python
-def Send(packet: MidiPacket, timeout_ms: int = 0) -> bool
-```
+- `STATUS_NONE`
+- `STATUS_NOTE_OFF`
+- `STATUS_NOTE_ON`
+- `STATUS_AFTERTOUCH`
+- `STATUS_CONTROL_CHANGE`
+- `STATUS_PROGRAM_CHANGE`
+- `STATUS_CHANNEL_PRESSURE`
+- `STATUS_PITCH_BEND`
+- `STATUS_MTC_QUARTER_FRAME`
+- `STATUS_SONG_POSITION`
+- `STATUS_SONG_SELECT`
+- `STATUS_TUNE_REQUEST`
+- `STATUS_CLOCK`
+- `STATUS_TICK`
+- `STATUS_START`
+- `STATUS_CONTINUE`
+- `STATUS_STOP`
+- `STATUS_ACTIVE_SENSE`
+- `STATUS_RESET`
+- `STATUS_SYSEX_DATA`
+- `STATUS_SYSEX_END`
 
-Sends a MIDI packet to the output.
+## Port Constants
 
-**Parameters:**
-- `packet` (`MidiPacket`): MIDI packet to send
-- `timeout_ms` (`int`, optional): Timeout in milliseconds for send operation (defaults to 0 for no timeout)
-
-**Returns:**
-- `bool`: True if sent successfully, False on timeout or error
-
-
----
-
-## `MatrixOS.MIDI.SendSysEx`
-```python
-def SendSysEx(port: int, length: int, data: bytes, include_meta: bool = False) -> bool
-```
-
-Sends System Exclusive (SysEx) MIDI data.
-
-**Parameters:**
-- `port` (`int`): MIDI port to send on
-- `length` (`int`): Length of SysEx data
-- `data` (`bytes`): SysEx data bytes
-- `include_meta` (`bool`, optional): Whether to include SysEx meta bytes (F0/F7) (defaults to False)
-
-**Returns:**
-- `bool`: True if sent successfully
-
-
----
-
-
+- `PORT_EACH_CLASS`
+- `PORT_ALL`
+- `PORT_USB`
+- `PORT_PHYSICAL`
+- `PORT_BLUETOOTH`
+- `PORT_WIRELESS`
+- `PORT_RTP`
+- `PORT_DEVICE_CUSTOM`
+- `PORT_SYNTH`
+- `PORT_OS`
+- `PORT_INVALID`
