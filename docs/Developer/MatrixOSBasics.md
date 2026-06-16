@@ -27,8 +27,9 @@ You should still test hardware-dependent behavior on a real device before releas
 | Prototype locally | [Matrix OS Developer Toolkit](./MatrixOSDeveloperToolkit) | You want to run Matrix OS in the browser, test Python snippets, inspect input/LED state, or automate checks before using hardware. |
 | Write a Python app | [Code Your Application (Python)](./PythonApplication) | You want a shareable app, quick iteration, and direct Matrix OS APIs from Python. |
 | Write a native app | [Code Your Application (C++)](./CppApplication) | You need maximum performance, direct native APIs, or deeper integration with Matrix OS. |
-| Build host software around a device | [Developer APP](./InterfacingWithMatrixOS/DeveloperAPP) | You want a clean controller canvas: use a Mystrix as an input surface and LED canvas for software running on a host. |
+| Build host software around a device | [Interfacing Overview](./InterfacingWithMatrixOS/Overview) | You want a clean controller canvas, device metadata, app switching, or host automation around a physical Mystrix. |
 | Read device info or issue system commands | [System Remote API](./InterfacingWithMatrixOS/SystemRemoteAPI) | You need device/app metadata, reboot/settings/app launch commands, or a way to enter Developer APP from a host. |
+| Change Matrix OS firmware | [Build Matrix OS](./BuildingMatrixOS/Overview) | You want to build Matrix OS itself, flash custom firmware, or contribute changes to the Matrix OS source tree. |
 
 ## Recommended Flow
 
@@ -47,21 +48,26 @@ Matrix OS has two host-facing protocol layers:
 
 Use System Remote API to get the device into the right app state. Use Developer APP when your host software wants Matrix OS hardware to behave like a clean controller surface.
 
+## Firmware Development
+
+If you are changing Matrix OS itself, use [Build Matrix OS](./BuildingMatrixOS/Overview) for your operating system, then use [Debug Your Application (C++)](./DebugMatrixOSCpp) when you need development logs. New device support currently requires source-tree firmware work, so start with the Matrix OS repository and hardware build path.
+
 ## API Model
 
-Matrix OS 4.0 uses the Input API for keypad, touchbar, scalar controls, and future input types.
+Matrix OS uses the Input API for keypad, touchbar, scalar controls, and future input types.
 
 - C++ apps use `MatrixOS::Input`, `InputEvent`, and `KeypadInfo`.
 - Python apps use `MatrixOS.Input` and dictionary-based input events.
-- Host tools should model input through the same Input API concepts, even when transport command names still say `KEYPAD`.
-
-If you are migrating C++ code from 3.x, read [Migration From 3.x to 4.x](./MatrixOSApplicationCppAPI/MigrationFrom3To4) before updating app logic.
+- Host tools use the protocol pages, but the event model maps back to the same input concepts.
 
 ## What To Read Next
 
 - New to Matrix OS development: [Matrix OS Developer Toolkit](./MatrixOSDeveloperToolkit)
 - Writing a first Python app: [Code Your Application (Python)](./PythonApplication)
 - Updating native app input handling: [Input API](./MatrixOSApplicationCppAPI/Input)
-- Building host-side controller software: [Developer APP](./InterfacingWithMatrixOS/DeveloperAPP)
+- Building host-side controller software: [Interfacing Overview](./InterfacingWithMatrixOS/Overview)
 - Device info and system control: [System Remote API](./InterfacingWithMatrixOS/SystemRemoteAPI)
+- Building Matrix OS firmware: [Build Matrix OS](./BuildingMatrixOS/Overview)
+- Debugging native app or firmware behavior: [Debug Your Application (C++)](./DebugMatrixOSCpp)
+- Only if updating older C++ code: [Migration From 3.x to 4.x](./MatrixOSApplicationCppAPI/MigrationFrom3To4)
 - API details: [Matrix OS Application API (C++)](/docs/category/matrix-os-application-api-c) and [Matrix OS Application API (Python)](/docs/category/matrix-os-application-api-python)

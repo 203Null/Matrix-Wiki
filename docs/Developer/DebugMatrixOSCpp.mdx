@@ -2,19 +2,105 @@
 sidebar_position: 5
 ---
 
-import DocLink from "@site/src/components/DocLink/DocLink";
-
 # Debug Your Application (C++)
 
+C++ app debugging usually starts with Matrix OS logs. Build in development mode, add a few `MLOG*` calls around app lifecycle and input handling, then check the toolkit log panel or USB serial output.
 
-## Enable Debug in Matrix OS
-To enable debug in Matrix OS. You will need to first build Matrix OS in debug mode.
+## Add Logs
 
-In the Matrix OS source folder run
-> make DEVICE=Mystrix **build-dev** uf2-upload
+```cpp
+void HelloNative::Setup(const vector<string>& args) {
+  (void)args;
+  MLOGI("HelloNative", "setup");
+}
 
-Then logging will be enabled on both USB and hardware UART on the device. 
+void HelloNative::Loop() {
+  InputEvent event;
+  while (MatrixOS::Input::Get(&event))
+  {
+    if (event.inputClass == InputClass::Keypad)
+    {
+      MLOGD("HelloNative", "key state %d", (uint8_t)event.keypad.state);
+    }
+  }
+}
 
-## Send Debug Logs
+void HelloNative::End() {
+  MLOGI("HelloNative", "end");
+}
+```
 
-You can use MLOG* macros or MatrixOS::Logging:Log* functions for sending out debug logs from your code. See <DocLink to="/docs/Developer/MatrixOSApplicationCppAPI/Logging">Logging API</DocLink>
+Use `MLOGE`, `MLOGW`, `MLOGI`, `MLOGD`, and `MLOGV` for compile-time-filtered logs. See the [Logging API](./MatrixOSApplicationCppAPI/Logging) for the full reference.
+
+## Build Development Firmware
+
+### Simulator
+
+From the Matrix OS repository:
+
+```powershell
+make DEVICE=MystrixSim setup
+make DEVICE=MystrixSim build-dev
+make DEVICE=MystrixSim run
+```
+
+For simulator setup details, see [Matrix OS Developer Toolkit](./MatrixOSDeveloperToolkit).
+
+### Hardware
+
+For hardware:
+
+```powershell
+make DEVICE=Mystrix build-dev uf2-upload
+```
+
+Use `DEVICE=Mystrix2` for Mystrix 2 family hardware.
+
+`build-dev` enables development logging. Regular release builds may compile out lower-level logs depending on the configured log level.
+
+## Where Logs Appear
+
+- Matrix OS Developer Toolkit: use the WebUI runtime logs panel.
+- Hardware over USB: connect a serial terminal to the Matrix OS USB serial port. Use `115200` if the terminal asks for a speed.
+- Hardware UART: logs are also available on the hardware UART when you have a debug setup connected.
+
+## Debug Input And LED Flow
+
+When debugging app behavior, log the event first, then log the action you take from it:
+
+```cpp
+InputEvent event;
+while (MatrixOS::Input::Get(&event))
+{
+  Point point;
+  bool hasPoint = MatrixOS::Input::GetPosition(event.id, &point);
+
+  MLOGD("HelloNative", "class %d state %d point %d %d",
+        (uint8_t)event.inputClass,
+        event.inputClass == InputClass::Keypad ? (uint8_t)event.keypad.state : 0,
+        hasPoint ? point.x : -1,
+        hasPoint ? point.y : -1);
+
+  if (event.inputClass == InputClass::Keypad && hasPoint && event.keypad.state == KeypadState::Pressed)
+  {
+    MatrixOS::LED::SetColor(point, Color::Cyan);
+    MatrixOS::LED::Update();
+    MLOGD("HelloNative", "lit %d %d", point.x, point.y);
+  }
+}
+```
+
+Keep debug logging short inside high-frequency loops. Once the behavior is confirmed, remove noisy logs or lower them to `MLOGV`.
+
+## Common Problems
+
+| Symptom | Check |
+| --- | --- |
+| No debug logs | Confirm you built with `build-dev`, not `build` or `build-release`. |
+| App never appears | Confirm the app folder is listed in the target family's `ApplicationList.txt`. |
+| Logs stop after launch | Add `MLOGI` to `Setup`, `Loop`, and `End` to find where control stops. |
+| Input logs never appear | Confirm the app is active, then check `MatrixOS::Input::Get(&event)` and `event.inputClass`. |
+| LEDs do not change | Confirm you call `MatrixOS::LED::Update()` after drawing. |
+| Hardware behavior differs from toolkit | Re-test timing, USB, MIDI, HID, storage, and pressure-sensitive input on real hardware. |
+
+For a complete minimal native app that matches these examples, see [Code Your Application (C++)](./CppApplication).

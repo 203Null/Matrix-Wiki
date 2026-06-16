@@ -4,130 +4,176 @@ sidebar_position: 2
 
 # Code Your Application (Python)
 
-## Ways to Use Python
+Python apps are the fastest way to build a shareable Matrix OS app. Start with a small standalone app, then keep the API reference open while you add storage, MIDI, HID, or UI.
+
+## Ways To Run Python
 
 ### Matrix OS Developer Toolkit
 
-Use [Matrix OS Developer Toolkit](./MatrixOSDeveloperToolkit) for the fastest edit-test loop. The Python panel can run short snippets and staged `.py` files before you copy an app to device storage.
+Use [Matrix OS Developer Toolkit](./MatrixOSDeveloperToolkit) for the fastest edit-test loop. You can try it at [dev.203.io](https://dev.203.io), or run it locally from the Matrix OS repository.
+
+The Python panel is best for short snippets, staged `.py` files, and quick checks before copying an app to device storage.
 
 ### Python REPL
 
 Open the Python app from the application launcher and connect over USB serial. The REPL is best for quick experiments, API exploration, and testing short snippets.
 
+Use a serial terminal on the Matrix OS USB serial port; set the speed to `115200` if the terminal asks. If output, tracebacks, or the prompt are missing, start from [Debug Your Application (Python)](./DebugMatrixOSPython#hardware-serial-and-repl).
+
 ### Standalone Python App
 
-Create a folder app on device storage:
+A standalone app lives on Matrix OS device storage:
 
 ```text
-/MatrixOS/Applications/<appname>/
+/MatrixOS/Applications/HelloPython/
+  AppInfo.json
+  main.py
 ```
 
-The folder must contain:
-
-- `AppInfo.json`
-- one or more `.py` files
-- the main file referenced by `appMainFile`
-
 :::warning Storage Required
-Standalone Python applications require device storage. On Mystrix devices, install a microSD card first. See [Install Micro SD Card](/docs/Mystrix/InstallMicroSD).
+Standalone Python applications require Matrix OS device storage. On Mystrix hardware, insert a microSD card and use USB Storage Mode from Matrix OS settings before copying the app folder.
 :::
 
-## AppInfo.json
+## Create `AppInfo.json`
+
+Create `/MatrixOS/Applications/HelloPython/AppInfo.json`:
 
 ```json
 {
-  "name": "Hello World",
-  "author": "203 Systems",
-  "color": [255, 0, 0],
+  "name": "Hello Python",
+  "author": "Your Name",
+  "color": [0, 255, 255],
   "version": 1,
   "osMinimalVer": [4, 0, 0],
   "appMainFile": "main.py"
 }
 ```
 
+`appMainFile` must match the Python file Matrix OS should run when the app launches.
+
 Required fields:
 
-- `name`: display name in Matrix OS
-- `author`: author or organization
-- `color`: app icon color as `[R, G, B]`
-- `version`: app version number
-- `osMinimalVer`: minimum Matrix OS version
-- `appMainFile`: Python file to run
+- `name`: display name in Matrix OS.
+- `author`: author or organization.
+- `color`: app icon color as `[R, G, B]`.
+- `version`: app version number.
+- `osMinimalVer`: minimum Matrix OS version.
+- `appMainFile`: Python file to run.
 
-## API Style
+If Matrix OS cannot parse `AppInfo.json`, or if `appMainFile` does not point to an existing file, the app will not appear or will fail to launch.
 
-Python APIs use `snake_case` names and Python values:
+## Create `main.py`
 
-- Colors are packed RGB integers or RGB/RGBW tuples.
-- Points are `(x, y)` tuples.
-- Input IDs are `(cluster_id, member_id)` tuples.
-- Input events and snapshots are dictionaries.
-- `MatrixOS.Input` provides keypad, touchbar, and other input events.
-
-## Minimal Example
+Create `/MatrixOS/Applications/HelloPython/main.py`:
 
 ```python
 import MatrixOS
 
-MatrixOS.LED.clear()
-MatrixOS.LED.set_xy(0, 0, (255, 0, 0))
-MatrixOS.LED.update()
+LED = MatrixOS.LED
+Input = MatrixOS.Input
+SYS = MatrixOS.SYS
+
+FUNCTION_KEY = Input.function_key()
+COLOR = (0, 255, 255)
+cursor = (0, 0)
+
+
+def draw():
+    LED.clear()
+    LED.set_xy(cursor[0], cursor[1], COLOR)
+    LED.update()
+
+
+def handle_event(event):
+    global cursor
+
+    keypad = event.get("keypad")
+    if not keypad:
+        return
+
+    if event.get("id") == FUNCTION_KEY and keypad.get("hold"):
+        LED.clear()
+        LED.update()
+        SYS.exit_app()
+        return
+
+    point = event.get("point")
+    if point and keypad.get("pressed"):
+        cursor = point
+        draw()
+
+
+def loop():
+    event = Input.get_event()
+    while event is not None:
+        handle_event(event)
+        event = Input.get_event()
+
+
+draw()
+Input.clear()
 ```
 
-Expected result: LED `(0, 0)` turns red.
+Expected result:
 
-## Input Example
+- The top-left LED turns cyan when the app launches.
+- Pressing a grid key moves the cyan LED to that key.
+- Holding the function key clears the LEDs and exits the app.
 
-```python
-import MatrixOS
+Standalone apps that should keep running define `loop()`. Matrix OS calls `loop()` repeatedly after the file has loaded. Let `loop()` return after it handles the current batch of work; a script with no `loop()` runs once and then exits.
 
-for _ in range(100):
-    event = MatrixOS.Input.get_event(10)
-    if event:
-        point = event.get("point")
-        keypad = event.get("keypad")
-        if point and keypad and keypad["pressed"]:
-            MatrixOS.LED.set_xy(point[0], point[1], (255, 255, 255))
-            MatrixOS.LED.update()
-    MatrixOS.SYS.task_yield()
+## Try It First
+
+The quickest path is the hosted toolkit:
+
+1. Open [dev.203.io](https://dev.203.io).
+2. Switch to the Python panel.
+3. Stage `main.py`, then run it.
+4. Use the input panel to press keys and check the LED panel.
+5. Check the Python output panel for `print()` output or tracebacks.
+
+To run the same toolkit locally, use the [local setup flow](./MatrixOSDeveloperToolkit#setup) first, then start it from the Matrix OS repository:
+
+```powershell
+make DEVICE=MystrixSim setup
+make DEVICE=MystrixSim build-dev
+make DEVICE=MystrixSim run
 ```
 
-Expected result: during the short polling window, pressing a key lights the matching LED white.
+Then open the WebUI URL printed by the dev server, usually `http://localhost:3000`, and use the same Python panel flow.
 
-## Try It In Matrix OS Developer Toolkit
-
-1. Start Matrix OS Developer Toolkit from the Matrix OS repository.
-2. Open the WebUI and switch to the Python panel.
-3. Paste the minimal example or upload a `.py` file.
-4. Run the script and check the LED panel or Python output.
-
-For automation, the toolkit JSON-RPC bridge can run snippets with `python.runText`; see [Matrix OS Developer Toolkit](./MatrixOSDeveloperToolkit#json-rpc-bridge).
+For automation, the local toolkit JSON-RPC bridge can run snippets with `python.runText`; see [Matrix OS Developer Toolkit](./MatrixOSDeveloperToolkit#json-rpc-bridge).
 
 ## Deploy To A Device
 
-1. Create `/MatrixOS/Applications/<appname>/` on device storage.
-2. Copy `AppInfo.json` and `main.py` into that folder.
-3. Restart Matrix OS or reopen the application launcher so the app list refreshes.
-4. Launch the app from the application launcher.
+1. Open Matrix OS settings and enable USB Storage Mode.
+2. Create `/MatrixOS/Applications/HelloPython/` on device storage.
+3. Copy `AppInfo.json` and `main.py` into that folder.
+4. Leave USB Storage Mode.
+5. Restart Matrix OS or reopen the application launcher so the app list refreshes.
+6. Launch Hello Python from the application launcher.
 
-## Debug
+## Troubleshooting
 
-Use `print()` for app output and keep test loops bounded while debugging. See [Debug Your Application (Python)](./DebugMatrixOSPython).
+- App is not visible: check the folder path, `AppInfo.json` JSON syntax, and `appMainFile`.
+- App opens then exits: make sure `main.py` defines `loop()` for long-running behavior.
+- LEDs do not change: call `MatrixOS.LED.update()` after drawing.
+- Input feels stuck after leaving a modal UI: call `MatrixOS.Input.clear()`.
+- Storage is not visible: confirm the microSD card is installed and USB Storage Mode is active.
+- Script has an exception: use `print()` while testing and see [Debug Your Application (Python)](./DebugMatrixOSPython).
 
 ## Example Apps
 
 Matrix OS includes Python example apps in the Matrix OS source tree:
 
-- `Applications/Python/examples/dice`
-- `Applications/Python/examples/lighting`
-- `Applications/Python/examples/reversi`
-- `Applications/Python/examples/gomoku`
-- `Applications/Python/examples/pixel_art`
-- `Applications/Python/examples/same_game`
-- `Applications/Python/examples/runtime_probe`
-- `Applications/Python/examples/api_introspection`
+- [dice](https://github.com/203-Systems/MatrixOS/tree/main/Applications/Python/examples/dice)
+- [lighting](https://github.com/203-Systems/MatrixOS/tree/main/Applications/Python/examples/lighting)
+- [reversi](https://github.com/203-Systems/MatrixOS/tree/main/Applications/Python/examples/reversi)
+- [gomoku](https://github.com/203-Systems/MatrixOS/tree/main/Applications/Python/examples/gomoku)
+- [pixel_art](https://github.com/203-Systems/MatrixOS/tree/main/Applications/Python/examples/pixel_art)
+- [same_game](https://github.com/203-Systems/MatrixOS/tree/main/Applications/Python/examples/same_game)
 
-Use these examples as the source of truth for Python app structure and API style.
+These are useful references once you have the minimal app running.
 
 ## API Reference
 

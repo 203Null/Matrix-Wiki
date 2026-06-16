@@ -6,12 +6,8 @@ import DocLink from "@site/src/components/DocLink/DocLink";
 
 # Building on Linux
 
-:::warning[Unverified Guide]
-I (Null) don't use Linux for development but I was able to get Matrix OS to build on Linux via WSL and Github Action.
-
-Since I mainly do develop on Windows, the code base might also have case sensitive issues that prevents it from build build on Linux/MacOS.
-
-If you have suggestions or questions, please reach out in our [Discord server](https://discord.gg/rRVCBHHPfw), [Github issue](https://github.com/203-Systems/Matrix-Wiki), or a leave a comment on this page.
+:::warning[Linux support note]
+The Linux build path is less frequently exercised than the Windows and macOS paths. If you hit a platform-specific build issue, check for case-sensitive path problems first and report the issue in the [Matrix Wiki repository](https://github.com/203-Systems/Matrix-Wiki) or the [Matrix OS repository](https://github.com/203-Systems/MatrixOS).
 :::
 
 ## Install Git
@@ -69,17 +65,18 @@ make --version
 
 ## Install ESP-IDF
 
-The ESP-IDF (Espressif IoT Development Framework) is required to build and upload Matrix OS to the Mystrix device.
+The ESP-IDF (Espressif IoT Development Framework) is required to build and upload Matrix OS to the Mystrix device. Matrix OS Mystrix builds require ESP-IDF 5.3.x and ESP32-S3 tooling. The commands below install v5.3.1.
 
-1. Download and install ESP-IDF version **V5.3.1**. Follow the instructions on [ESP-IDF: Standard Setup of Toolchain for Linux](https://docs.espressif.com/projects/esp-idf/en/stable/esp32/get-started/linux-setup.html) to install version V5.3.1.
+```bash
+mkdir -p ~/esp
+cd ~/esp
+git clone -b v5.3.1 --recursive https://github.com/espressif/esp-idf.git
+cd ~/esp/esp-idf
+./install.sh esp32s3
+python3 $HOME/esp/esp-idf/tools/idf_tools.py install riscv32-esp-elf
+```
 
-2. After installation, locate the installation directory (e.g., `~/esp`).
-
-3. Run the `install.sh` script to complete the setup:
-
-   ```bash
-   ~/esp/esp-idf/install.sh
-   ```
+If the installer reports missing system packages, install the packages it lists, then rerun `./install.sh esp32s3`.
 
 ## Build Matrix OS
 
@@ -93,7 +90,7 @@ Use `DEVICE=Mystrix` for Mystrix 1 family devices. Use `DEVICE=Mystrix2` for Mys
    source ~/esp/esp-idf/export.sh
    ```
 
-    In the long run, you will want to automate this. You could add this line to your shell's configuration file (e.g., `.bashrc` or `.zshrc`) or if you are using VS Code, you can modify the MatrixOS.code-workspace file and adapt it to run it on new terminal.
+   For repeated development, add this command to your shell setup or configure your editor terminal to source ESP-IDF before running Matrix OS build commands.
 
 2. Navigate to the Matrix OS root folder if your terminal isn’t already there.
 
@@ -131,18 +128,4 @@ Use `DEVICE=Mystrix` for Mystrix 1 family devices. Use `DEVICE=Mystrix2` for Mys
 
 7. Your Mystrix device should now flash and start the newly compiled Matrix OS automatically.
 
-## Build Commands
-
-Here are some useful build commands you can use in Matrix OS:
-
-- `clean` - Cleans the build.
-- `fullclean` - Cleans the build more thoroughly. Use this if you encounter undefined references or missing files.
-- `build` - Builds Matrix OS based on the default config (OS/parameter.h).
-- `build-release`, `build-rc`, `build-beta`, `build-nightly`, `build-dev` - Builds Matrix OS in various modes. `build-dev` enables USB logging (see <DocLink to="/docs/Developer/DebugMatrixOSCpp">Debug Matrix OS</DocLink>).
-
-You can chain commands together like:
-```bash
-make DEVICE=Mystrix clean build uf2-upload
-```
-
-Use `DEVICE=Mystrix2` in the same command chain when building for Mystrix 2.
+For target examples and command chains, see [Build Matrix OS](../Overview). Use `build-dev` when you need logs; see <DocLink to="/docs/Developer/DebugMatrixOSCpp">Debug Your Application (C++)</DocLink>.

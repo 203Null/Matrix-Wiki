@@ -1,7 +1,8 @@
 {
-  "label": "Building Matrix OS",
+  "label": "Build Matrix OS",
   "position": 90,
   "link": {
-    "type": "generated-index"
+    "type": "doc",
+    "id": "Developer/BuildingMatrixOS/Overview"
   }
 }

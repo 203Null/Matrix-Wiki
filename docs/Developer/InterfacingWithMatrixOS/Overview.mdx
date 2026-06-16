@@ -1,0 +1,36 @@
+---
+title: Interfacing Overview
+sidebar_position: 0
+---
+
+# Interfacing With Matrix OS
+
+Host software can talk to Matrix OS through three different surfaces. Pick the one that matches what the host is trying to control.
+
+## Choose The Right Surface
+
+| Use case | Use this | Why |
+| --- | --- | --- |
+| Local simulator automation | [Matrix OS Developer Toolkit](../MatrixOSDeveloperToolkit#json-rpc-bridge) | Best for tests, scripts, and CI-style checks against the browser-hosted runtime. |
+| Device metadata and system control | [System Remote API](./SystemRemoteAPI) | Reads version/device/app info, opens settings, reboots, switches apps, and enters Developer APP. |
+| Host app using Mystrix as a controller | [Developer APP](./DeveloperAPP) | Gives the host a clean input surface and LED canvas after Matrix OS has entered Developer APP. |
+
+## Typical Host Flow
+
+For a browser or desktop tool that wants to use a physical Mystrix as a controller:
+
+1. Open the Matrix OS HID interface.
+2. Use [System Remote API](./SystemRemoteAPI) to identify the device if needed.
+3. Send `OPEN_DEVELOPER_APP` (`0x44`) through System Remote API.
+4. Poll Developer APP `PING` (`0x00`) until the app is ready.
+5. Enable input reports and write LEDs through [Developer APP](./DeveloperAPP).
+
+Use System Remote API for device state and app switching. Use Developer APP for live controller input and LED canvas updates after the app switch completes.
+
+## What Not To Mix
+
+- Do not use Developer APP for reboot, settings, device metadata, or app switching.
+- Do not use System Remote API for high-frequency LED mirroring or live controller input.
+- Do not use the toolkit JSON-RPC bridge as the public hardware protocol; it is for local development and automation against the toolkit runtime.
+
+When in doubt, use System Remote API to put Matrix OS in the right state, then use the app-specific protocol for the interactive work.

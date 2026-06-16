@@ -5,116 +5,411 @@ sidebar_position: 1
 
 # System Remote API
 
-The System Remote API is the Matrix OS protocol for device information and system-level control from a host. Use it to read device/app metadata, reboot or open settings, and enter a target app such as Developer APP.
+The System Remote API is the Matrix OS protocol for device information and system-level control from host software. Use it to read device/app metadata, reboot or open settings, update system LED state, and enter a target app such as Developer APP.
 
 :::warning Matrix OS 4.0 beta
-The System Remote API is a beta developer protocol. Command IDs are documented here to help tool authors experiment, but the protocol may still change before a stable 4.0 release.
+The System Remote API is a beta developer protocol. Command IDs are documented so tool authors can build against the current firmware, but details may still change before the stable release.
 :::
 
-## Transports
+## When To Use It
 
-The shared command handler supports MIDI SysEx 7-bit payloads and HID reports. Transport framing differs, but command IDs are kept consistent where possible.
+Use System Remote API when the host needs to control Matrix OS itself:
 
-### HID Reports
+- identify the device and firmware version
+- read the active app metadata
+- enter or quit apps
+- open settings, reboot, or bootloader
+- enter [Developer APP](./DeveloperAPP) before using the device as a clean controller canvas
+
+Do not use System Remote API for high-frequency controller input or mirrored LED frames. Once Developer APP is active, use the Developer APP protocol for live input reports and LED canvas writes.
+
+## HID Transport
 
 WebHID clients use the Matrix OS HID collection:
 
 - vendor ID: `0x0203`
 - usage page: `0xFF00`
 - usage: `0x01`
-- system report ID: `0xCB`
+- System Remote API report ID: `0xCB`
+- report payload size: up to 63 bytes
 
-System Remote API HID request layout:
+HID request layout:
 
 ```text
 byte 0      command
-byte 1..62  command payload, padded with zeros by the host report layer
+byte 1..62  command payload
 ```
 
-System Remote API HID replies start with `command | 0x80`. Commands that return data put that data after the reply command. Commands that only ACK return just the reply command.
-
-For example, to enter Developer APP:
+HID reply layout:
 
 ```text
-send report 0xCB: 0x44
-expect reply:     0xC4
+byte 0      command | 0x80
+byte 1..    reply data, if the command returns data
 ```
 
-## Relationship To Developer APP
+System Remote API HID replies do not include a status byte. This is different from Developer APP, where HID replies are `command | 0x80`, then `status`, then optional data.
 
-System Remote API prepares and controls the Matrix OS device at the system level. Developer APP is the clean controller canvas for host software.
+Commands that only ACK return the reply command byte by itself. Commands documented as "no success reply" do not send a reply when they succeed, so host tools should not wait for one.
 
-A typical host flow is:
+Malformed or unsupported System Remote API commands may not send a reply. Use a timeout and treat the request as invalid or unsupported.
 
-1. Use System Remote API to identify the device and active app.
-2. Use `OPEN_DEVELOPER_APP` to enter Developer APP.
-3. Use the [Developer APP](./DeveloperAPP) protocol for live input reports and LED canvas writes.
+WebHID `sendReport(reportId, data)` takes the report ID separately. Host libraries such as hidapi often expect the report ID as the first byte of the written buffer, so the same request may be written as `0xCB command payload...` in those APIs.
 
-Do not use Developer APP for device metadata, reboot, settings, or app switching. Those belong to System Remote API.
+## SysEx Transport
 
-## System Commands
+System Remote API also supports Matrix OS system SysEx. This is a different framing from Developer APP SysEx.
 
-| Command | ID | Purpose |
+Request framing:
+
+```text
+F0 23 command payload... F7
+```
+
+Reply framing:
+
+```text
+F0 24 reply... F7
+```
+
+System SysEx uses 7-bit payload bytes. In SysEx replies, the reply command is the command ID itself, not `command | 0x80`.
+
+## Encodings
+
+The request payloads below start after the command byte.
+
+| Type | HID encoding | System SysEx encoding |
 | --- | --- | --- |
-| `GET_OS_VERSION` | `0x00` | Read Matrix OS version fields. |
-| `GET_DEVICE_NAME` | `0x01` | Read device name. |
-| `GET_DEVICE_MODEL_ID` | `0x02` | Read model ID. |
-| `GET_DEVICE_SERIAL` | `0x03` | Read device serial. |
-| `GET_DEVICE_ID` | `0x04` | Read device ID. |
-| `GET_DEVICE_SIZE` | `0x05` | Read primary device size. |
-| `GET_DEVICE_LED_COUNT` | `0x06` | Read LED count. |
-| `SET_DEVICE_ID` | `0x0B` | Set device ID. |
+| `u8` | one byte | one 7-bit byte |
+| `u16` | big-endian, `msb lsb` | three 7-bit bytes: `bits15..14 bits13..7 bits6..0` |
+| `u32` | big-endian, `b31..24 b23..16 b15..8 b7..0` | five 7-bit bytes: `bits31..25 bits24..18 bits17..11 bits10..4 bits3..0<<3` |
+| `string` | ASCII-compatible, null-terminated | 7-bit ASCII-compatible, null-terminated |
+| `color` | Matrix OS `Color(uint32_t WRGB)`, sent as `u32` | Matrix OS `Color(uint32_t WRGB)`, sent as SysEx `u32` |
+| `layer` | `0..MAX_LED_LAYERS - 1`, or `255` for the current/default layer where supported | one 7-bit byte where supported |
 
-## App Commands
+For `color`, `0x00FF0000` is red, `0x0000FF00` is green, `0x000000FF` is blue, and the top byte is white.
 
-| Command | ID | Purpose |
-| --- | --- | --- |
-| `GET_APP_ID` | `0x10` | Read active app ID. |
-| `GET_APP_NAME` | `0x11` | Read active app name. |
-| `GET_APP_AUTHOR` | `0x12` | Read active app author. |
-| `GET_APP_VERSION` | `0x13` | Read active app version. |
-| `ENTER_APP_VIA_ID` | `0x18` | Enter an app by ID, including Developer APP. Returns ACK. |
-| `QUIT_APP` | `0x1F` | Quit the active app. Returns ACK. |
+For example, the System SysEx `u32` value `0x12345678` is encoded as:
 
-## System Action Commands
+```text
+09 0D 0A 67 40
+```
 
-| Command | ID | Purpose |
-| --- | --- | --- |
-| `BOOTLOADER` | `0x40` | Enter bootloader. Returns ACK. |
-| `REBOOT` | `0x41` | Reboot. Returns ACK. |
-| `SLEEP` | `0x42` | Sleep briefly. Returns ACK. |
-| `OPEN_SETTINGS` | `0x43` | Open system settings. Returns ACK. |
-| `OPEN_DEVELOPER_APP` | `0x44` | Enter Developer APP. Returns ACK. |
-| `FACTORY_RESET` | `0x4F` | Factory reset flow with confirmation. |
+New browser and desktop tools should prefer HID unless they specifically need a MIDI-only path.
 
-## LED Commands
+## Enter Developer APP
 
-| Command | ID | Purpose |
-| --- | --- | --- |
-| `LED_SET_COLOR_XY` | `0x50` | Set LED color by coordinate. |
-| `LED_SET_COLOR_ID` | `0x51` | Set LED color by LED index. |
-| `LED_FILL` | `0x52` | Fill LEDs. |
-| `LED_FILL_PARTITION` | `0x53` | Fill a partition. |
-| `LED_UPDATE` | `0x54` | Update LED output. |
-| `LED_CREATELAYER` | `0x55` | Create a layer. |
-| `LED_COPYLAYER` | `0x56` | Copy one layer to another. |
-| `LED_DESTROYLAYER` | `0x57` | Destroy a layer. |
-| `LED_SET_BRIGHTNESS` | `0x59` | Set brightness. |
-| `LED_FADE` | `0x5A` | Fade layer output. |
-| `GET_LED_CURRENT_LAYER` | `0x5C` | Read current layer. |
-| `GET_LED_BRIGHTNESS` | `0x5D` | Read brightness. |
+Developer APP is hidden from the normal application launcher. A host enters it through System Remote API, then switches to the Developer APP report.
+
+```text
+System report 0xCB:
+  send:   0x44                 # OPEN_DEVELOPER_APP
+  expect: 0xC4                 # ACK
+
+Developer APP report 0xFF:
+  send:   0x00                 # PING
+  expect: 0x80 0x00 ...        # Developer APP ACK with status OK
+```
+
+Recommended host flow:
+
+1. Open the Matrix OS HID device.
+2. Send `OPEN_DEVELOPER_APP` (`0x44`) on report `0xCB`.
+3. Wait for reply `0xC4`.
+4. Wait about `250 ms` for the app switch.
+5. Poll Developer APP `PING` (`0x00`) on report `0xFF` until it replies.
+6. Use [Developer APP](./DeveloperAPP) for input events and LED canvas writes.
+
+`ENTER_APP_VIA_ID` (`0x18`) can enter apps by app ID, but `OPEN_DEVELOPER_APP` is the direct command for this workflow.
+
+## App IDs And Discovery
+
+System Remote API can report the active app, but it does not currently enumerate every installed app.
+
+- Use `GET_APP_ID`, `GET_APP_NAME`, `GET_APP_AUTHOR`, and `GET_APP_VERSION` to identify the app that is currently running.
+- Use `OPEN_DEVELOPER_APP` when the host wants Developer APP. It avoids hard-coding the Developer APP ID.
+- Use `ENTER_APP_VIA_ID` only when the host already knows the target app ID.
+
+Native Matrix OS app IDs are generated from the app author and app name with the same ID used by Matrix OS when the app is registered. In the Matrix OS source tree, C++ code can use `APPID(author, name)` or `MatrixOS::SYS::ExecuteAPP(author, appName)`. Host software should treat app IDs as firmware/app metadata, not as values discoverable from this protocol today.
+
+After `ENTER_APP_VIA_ID` ACKs, app switching is asynchronous. Confirm success by waiting briefly, then reading `GET_APP_ID` or `GET_APP_NAME`, or by polling the target app's own protocol if it has one. For Developer APP, poll Developer APP `PING` on report `0xFF`.
+
+## Command Summary
+
+| Command | ID | Request payload | Success reply |
+| --- | ---: | --- | --- |
+| `GET_OS_VERSION` | `0x00` | none | `0x80 major minor patch build release` |
+| `GET_DEVICE_NAME` | `0x01` | none | `0x81 name\0` |
+| `GET_DEVICE_MODEL_ID` | `0x02` | none | `0x82 model\0` |
+| `GET_DEVICE_SERIAL` | `0x03` | none | `0x83 serial\0` |
+| `GET_DEVICE_ID` | `0x04` | none | `0x84 device_id:u16` |
+| `GET_DEVICE_SIZE` | `0x05` | none | `0x85 width:u8 height:u8` |
+| `GET_DEVICE_LED_COUNT` | `0x06` | none | `0x86 led_count:u32` |
+| `SET_DEVICE_ID` | `0x0B` | `device_id:u16` | no success reply |
+| `GET_APP_ID` | `0x10` | none | `0x90 app_id:u32` |
+| `GET_APP_NAME` | `0x11` | none | `0x91 name\0` |
+| `GET_APP_AUTHOR` | `0x12` | none | `0x92 author\0` |
+| `GET_APP_VERSION` | `0x13` | none | `0x93 version:u32` |
+| `ENTER_APP_VIA_ID` | `0x18` | `app_id:u32` | `0x98`, then app switch |
+| `QUIT_APP` | `0x1F` | none | `0x9F`, then app quit |
+| `BOOTLOADER` | `0x40` | none | `0xC0`, then bootloader |
+| `REBOOT` | `0x41` | none | `0xC1`, then reboot |
+| `SLEEP` | `0x42` | none | `0xC2` |
+| `OPEN_SETTINGS` | `0x43` | none | `0xC3`, then settings opens |
+| `OPEN_DEVELOPER_APP` | `0x44` | none | `0xC4`, then Developer APP opens |
+| `LED_SET_COLOR_XY` | `0x50` | `x:u16 y:u16 color:u32 [layer:u8]` | no success reply |
+| `LED_SET_COLOR_ID` | `0x51` | `id:u16 color:u32 [layer:u8]` | no success reply |
+| `LED_FILL` | `0x52` | `color:u32 [layer:u8]` | no success reply |
+| `LED_FILL_PARTITION` | `0x53` | `partition:u8 color:u32 [layer:u8]` | no success reply |
+| `LED_UPDATE` | `0x54` | `[layer:u8]` | no success reply |
+| `LED_CREATELAYER` | `0x55` | `[crossfade_ms:u16]` | `0xD5 layer:u8` |
+| `LED_COPYLAYER` | `0x56` | `from_layer:u8 to_layer:u8` | no success reply |
+| `LED_DESTROYLAYER` | `0x57` | `[crossfade_ms:u16]` | `0xD7 destroyed:u8` |
+| `LED_SET_BRIGHTNESS` | `0x59` | `brightness:u8` | no success reply |
+| `LED_FADE` | `0x5A` | `[crossfade_ms:u16]` | no success reply |
+| `GET_LED_CURRENT_LAYER` | `0x5C` | none | `0xDC layer:u8` |
+| `GET_LED_BRIGHTNESS` | `0x5D` | none | `0xDD brightness:u8` |
+| `KEYPAD_GET_KEY_XY` | `0x60` | `x:u8 y:u8` | `0xE0 found:u8 [cluster_id:u8 member_id:u16]` |
+| `KEYPAD_GET_KEY_ID` | `0x61` | `cluster_id:u8 member_id:u16` | `0xE1 found:u8 [key info...]` |
+
+`FACTORY_RESET` (`0x4F`) is reserved and unsupported in the current public protocol.
+
+## Device And App Metadata
+
+### `GET_OS_VERSION` (`0x00`)
+
+Request payload: none.
+
+Reply:
+
+```text
+0x80 major minor patch build release
+```
+
+### String Metadata
+
+These commands return null-terminated strings:
+
+| Command | ID | Reply |
+| --- | ---: | --- |
+| `GET_DEVICE_NAME` | `0x01` | `0x81 name\0` |
+| `GET_DEVICE_MODEL_ID` | `0x02` | `0x82 model\0` |
+| `GET_DEVICE_SERIAL` | `0x03` | `0x83 serial\0` |
+| `GET_APP_NAME` | `0x11` | `0x91 name\0` |
+| `GET_APP_AUTHOR` | `0x12` | `0x92 author\0` |
+
+### Numeric Metadata
+
+| Command | ID | Reply data |
+| --- | ---: | --- |
+| `GET_DEVICE_ID` | `0x04` | `device_id:u16` |
+| `GET_DEVICE_SIZE` | `0x05` | `width:u8 height:u8` |
+| `GET_DEVICE_LED_COUNT` | `0x06` | `led_count:u32` |
+| `GET_APP_ID` | `0x10` | `app_id:u32` |
+| `GET_APP_VERSION` | `0x13` | `version:u32` |
+| `GET_LED_CURRENT_LAYER` | `0x5C` | `layer:u8` |
+| `GET_LED_BRIGHTNESS` | `0x5D` | `brightness:u8` |
+
+Each reply starts with `command | 0x80`, then the data shown in the table.
+
+### `SET_DEVICE_ID` (`0x0B`)
+
+Request payload:
+
+```text
+device_id:u16
+```
+
+Success reply: none.
+
+## App And System Actions
+
+Action commands ACK first, wait briefly inside Matrix OS, then perform the action.
+
+| Command | ID | Payload | ACK |
+| --- | ---: | --- | --- |
+| `ENTER_APP_VIA_ID` | `0x18` | `app_id:u32` | `0x98` |
+| `QUIT_APP` | `0x1F` | none | `0x9F` |
+| `BOOTLOADER` | `0x40` | none | `0xC0` |
+| `REBOOT` | `0x41` | none | `0xC1` |
+| `SLEEP` | `0x42` | none | `0xC2` |
+| `OPEN_SETTINGS` | `0x43` | none | `0xC3` |
+| `OPEN_DEVELOPER_APP` | `0x44` | none | `0xC4` |
+
+Use `OPEN_DEVELOPER_APP` instead of `ENTER_APP_VIA_ID` when the host specifically wants Developer APP.
+
+## System LED Commands
+
+System Remote API LED commands operate on Matrix OS LED layers. They are useful for simple system-level drawing, not for high-frame-rate host mirroring. For high-frequency LED canvas updates, enter Developer APP and use its LED commands.
+
+:::note WebHID padding and optional fields
+Some Matrix OS HID stacks receive fixed-size reports. When a command has an optional `layer` or `crossfade_ms`, a zero-padded WebHID report can be interpreted as an explicit value. If you need a specific layer, include it explicitly. Use `255` for the current/default layer where supported.
+:::
+
+### `LED_SET_COLOR_XY` (`0x50`)
+
+Request payload:
+
+```text
+x:u16 y:u16 color:u32 [layer:u8]
+```
+
+Sets one LED by coordinate. Success reply: none.
+
+### `LED_SET_COLOR_ID` (`0x51`)
+
+Request payload:
+
+```text
+id:u16 color:u32 [layer:u8]
+```
+
+Sets one LED by LED index. Success reply: none.
+
+### `LED_FILL` (`0x52`)
+
+Request payload:
+
+```text
+color:u32 [layer:u8]
+```
+
+Fills the current LED target. Success reply: none.
+
+### `LED_FILL_PARTITION` (`0x53`)
+
+Request payload:
+
+```text
+partition:u8 color:u32 [layer:u8]
+```
+
+Fills a numeric LED partition. Success reply: none.
+
+### `LED_UPDATE` (`0x54`)
+
+Request payload:
+
+```text
+[layer:u8]
+```
+
+Pushes LED output for a layer. Success reply: none.
+
+### Layer Commands
+
+| Command | ID | Payload | Reply |
+| --- | ---: | --- | --- |
+| `LED_CREATELAYER` | `0x55` | `[crossfade_ms:u16]` | `0xD5 layer:u8` |
+| `LED_COPYLAYER` | `0x56` | `from_layer:u8 to_layer:u8` | no success reply |
+| `LED_DESTROYLAYER` | `0x57` | `[crossfade_ms:u16]` | `0xD7 destroyed:u8` |
+| `LED_FADE` | `0x5A` | `[crossfade_ms:u16]` | no success reply |
+
+### `LED_SET_BRIGHTNESS` (`0x59`)
+
+Request payload:
+
+```text
+brightness:u8
+```
+
+Success reply: none.
 
 ## Input Read Commands
 
-| Command | ID | Purpose |
-| --- | --- | --- |
-| `KEYPAD_GET_KEY_XY` | `0x60` | Read keypad state by coordinate. |
-| `KEYPAD_GET_KEY_ID` | `0x61` | Read keypad state by ID. |
+These wire commands keep the `KEYPAD` names, but they read Matrix OS Input state.
 
-The command names use `KEYPAD` for these reports, while Matrix OS resolves state through the Input system.
+### `KEYPAD_GET_KEY_XY` (`0x60`)
 
-## Tooling Notes
+Request payload:
 
-- Use command ACK replies instead of assuming a command completed synchronously.
-- Use the Input API model for new tooling even when command names say `KEYPAD`.
-- For local automation against Matrix OS Developer Toolkit, prefer the toolkit JSON-RPC bridge when it is available.
+```text
+x:u8 y:u8
+```
+
+Reply:
+
+```text
+0xE0 found:u8 [cluster_id:u8 member_id:u16]
+```
+
+If `found` is `0`, no additional key data follows.
+
+### `KEYPAD_GET_KEY_ID` (`0x61`)
+
+Request payload:
+
+```text
+cluster_id:u8 member_id:u16
+```
+
+Reply:
+
+```text
+0xE1 found:u8 [cluster_id:u8 member_id:u16 x:u16 y:u16 state:u8 pressure:u16 velocity:u16]
+```
+
+If `found` is `0`, no additional key data follows. `state` uses the same keypad state values documented in [Developer APP](./DeveloperAPP#keypad-state).
+
+## Minimal WebHID Helpers
+
+```js
+const VENDOR_ID = 0x0203
+const USAGE_PAGE = 0xff00
+const USAGE = 0x01
+const SYSTEM_REPORT_ID = 0xcb
+
+function makeReport(...bytes) {
+  const report = new Uint8Array(63)
+  report.set(bytes)
+  return report
+}
+
+function waitForReport(device, reportId, match, timeoutMs = 800) {
+  return new Promise((resolve, reject) => {
+    const timer = setTimeout(() => {
+      cleanup()
+      reject(new Error("Timed out waiting for System Remote API reply"))
+    }, timeoutMs)
+
+    function cleanup() {
+      clearTimeout(timer)
+      device.removeEventListener("inputreport", onInputReport)
+    }
+
+    function onInputReport(event) {
+      if (event.reportId !== reportId) return
+      const data = new Uint8Array(event.data.buffer, event.data.byteOffset, event.data.byteLength)
+      if (!match(data)) return
+      cleanup()
+      resolve(data)
+    }
+
+    device.addEventListener("inputreport", onInputReport)
+  })
+}
+
+async function requestSystemCommand(device, command, payload = [], timeoutMs = 800) {
+  const reply = waitForReport(
+    device,
+    SYSTEM_REPORT_ID,
+    (data) => data[0] === (command | 0x80),
+    timeoutMs,
+  )
+  await device.sendReport(SYSTEM_REPORT_ID, makeReport(command, ...payload))
+  return reply
+}
+
+const [device] = await navigator.hid.requestDevice({
+  filters: [{ vendorId: VENDOR_ID, usagePage: USAGE_PAGE, usage: USAGE }],
+})
+
+await device.open()
+
+const version = await requestSystemCommand(device, 0x00)
+console.log("Matrix OS version", version.slice(1, 6))
+
+await requestSystemCommand(device, 0x44)
+console.log("Developer APP requested")
+```
+
+After `0x44` ACKs, switch to report `0xFF` and use Developer APP `PING` to verify the app is ready.

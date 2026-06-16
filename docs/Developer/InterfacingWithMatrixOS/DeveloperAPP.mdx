@@ -53,35 +53,74 @@ byte 2..62  reply data
 
 For normal command replies, `reply command = command | 0x80`. For asynchronous input reports, `reply command = 0x90`.
 
+## Minimal HID Flow
+
+```text
+System report 0xCB:
+  send 0x44                         # OPEN_DEVELOPER_APP
+  wait for 0xC4 ACK
+
+Developer APP report 0xFF:
+  send 0x00                         # PING
+  expect 0x80 0x00 protocol_version width height led_count_msb led_count_lsb
+
+Developer APP report 0xFF:
+  send 0x01 0x01 0x01               # SET_INPUT_REPORT, key info, enabled
+  expect 0x81 0x00                  # command | 0x80, OK
+```
+
+For HID, `SET_INPUT_REPORT` replies on `command | 0x80`, so command `0x01` replies as `0x81 0x00` on success. The same byte value `0x81` is also the SysEx error reply command. Always interpret replies in the context of the transport.
+
 ## SysEx Transport
 
 Developer APP also accepts MIDI SysEx messages. SysEx payload bytes must be 7-bit clean.
 
+Developer APP SysEx uses:
+
+```text
+manufacturer id: 00 02 03
+family id:       4D 58
+```
+
 SysEx command framing:
 
 ```text
-F0 <203 Systems manufacturer id> <family id> command payload... F7
+F0 00 02 03 4D 58 command payload... F7
 ```
 
 SysEx ACK framing:
 
 ```text
-F0 <203 Systems manufacturer id> <family id> 0x80 command 0x00 data... F7
+F0 00 02 03 4D 58 80 command 00 data... F7
 ```
 
 SysEx error framing:
 
 ```text
-F0 <203 Systems manufacturer id> <family id> 0x81 command status F7
+F0 00 02 03 4D 58 81 command status F7
 ```
 
 SysEx input event framing:
 
 ```text
-F0 <203 Systems manufacturer id> <family id> 0x90 event... F7
+F0 00 02 03 4D 58 90 event... F7
 ```
 
 HID is the recommended transport for new browser/desktop tools because it supports full 8-bit RGB and RGB565 payloads. SysEx uses 7-bit values, so color and index fields are encoded differently where noted.
+
+## Basic MIDI Behavior
+
+Developer APP also exposes a simple MIDI controller surface:
+
+- MIDI Start (`0xFA`) or Continue (`0xFB`) enables MIDI key reports.
+- Activated or pressed grid input sends MIDI Note On on channel `0`; the note number is the LED index and velocity is reduced to 7-bit.
+- Released grid input sends MIDI Note Off on channel `0`.
+- Aftertouch sends MIDI poly aftertouch on channel `0`; pressure is reduced to 7-bit.
+- Incoming Note On writes the note-index LED. Channel `0` uses grayscale velocity; channels `1..15` use channel-based hue.
+- Incoming Note Off, or Note On with velocity `0`, clears the note-index LED.
+- Control Change `120` on channel `0` clears all LEDs.
+
+Use HID for full-fidelity host tools. Use MIDI behavior when the host integration should look like a conventional MIDI controller.
 
 ## Common Types
 
@@ -138,34 +177,94 @@ LED write commands include a numeric partition index. On current Mystrix layouts
 
 Tools should use `PING` to read device size and LED count before assuming a fixed layout.
 
+### LED Addressing
+
+`PING` returns the logical grid `width`, logical grid `height`, and total `led_count`. `led_count` is the full LED buffer count, including grid LEDs and any underglow LEDs.
+
+For current 8x8 Mystrix layouts:
+
+| Partition | Start index | Size | Notes |
+| --- | ---: | ---: | --- |
+| Grid | `0` | `64` | Main 8x8 grid. |
+| Underglow | `64` | `32` | Present on devices with underglow. |
+
+XY coordinates use the Matrix OS logical orientation:
+
+- `(0, 0)` is the top-left grid LED.
+- `x` increases to the right.
+- `y` increases downward.
+- Underglow can be addressed with perimeter coordinates such as `x = -1`, `x = width`, `y = -1`, or `y = height` when the device has underglow.
+- For perimeter coordinates, keep the other coordinate on the grid edge range, for example `0..width - 1` or `0..height - 1`.
+
+Do not hard-code one grid index order for all devices. Grid index order is device-model-specific. Use `LED_WRITE_XY` for position-based UI, and use `LED_WRITE_INDEX_RANGE` only when the host has a model-aware LED index map.
+
+### HID LED Payload Capacity
+
+The Developer APP HID report carries 62 payload bytes after the command byte. For LED write commands, that gives these maximum entries per HID report:
+
+| Command | RGB24 | RGBW32 | RGB565 |
+| --- | ---: | ---: | ---: |
+| `LED_WRITE_INDEX` | 11 LEDs | 9 LEDs | 14 LEDs |
+| `LED_WRITE_XY` | 11 LEDs | 9 LEDs | 14 LEDs |
+| `LED_WRITE_INDEX_RANGE` | 19 LEDs | 14 LEDs | 28 LEDs |
+
+For full-frame uploads, prefer `LED_WRITE_INDEX_RANGE` with `LED_FLAG_CANVAS`, split the frame into chunks, then send one `LED_CANVAS_UPDATE`.
+
 ### Keypad State
 
 Input reports and key reads return keypad state values:
 
 | State | Value |
 | --- | ---: |
+| Idle | `0x00` |
 | Activated | `0x01` |
 | Pressed | `0x02` |
 | Hold | `0x03` |
 | Aftertouch | `0x04` |
 | Released | `0x05` |
+| Debouncing | `0xF0` |
+| Release Debouncing | `0xF1` |
 
-Pressure and velocity are 16-bit values on HID replies and 7-bit reduced values on SysEx replies.
+State meanings:
+
+- Idle: input is inactive.
+- Activated: input crossed into active contact.
+- Pressed: input is pressed.
+- Hold: input reached the hold threshold.
+- Aftertouch: pressure changed while the input is active.
+- Released: input was released.
+- Debouncing / Release Debouncing: device input-layer transitional states that may appear in `KEY_READ_*` polling.
+
+Pressure and velocity are `0..65535` on HID replies and `0..127` reduced values on SysEx replies.
+
+### Input Debounce And Repeat
+
+Asynchronous input reports are event-facing reports from the Matrix OS input layer. They do not report raw scan data.
+
+`KEY_READ_INDEX` and `KEY_READ_XY` poll the current input snapshot. Snapshot reads can return non-event states such as `Idle`, `Debouncing`, and `Release Debouncing`; host tools should treat states `0x01..0x05` as the event-like keypad states.
+
+Developer APP does not generate host-facing auto-repeat events. If a host tool needs repeat behavior, implement repeat timing in the host after receiving a press event and before the release event.
+
+Hold events are filtered out of asynchronous input reports. If a host tool needs hold behavior, the most reliable path is to time the interval between press and release on the host. Use `KEY_READ_INDEX` or `KEY_READ_XY` only when the host needs a best-effort current-state snapshot of one input.
 
 ## Command Reference
 
-| Command | ID | Purpose |
-| --- | --- | --- |
-| `PING` | `0x00` | Returns protocol/version information. |
-| `SET_INPUT_REPORT` | `0x01` | Enable input reports. |
-| `EXIT_APP` | `0x02` | Exit the Developer APP. |
-| `LED_WRITE_INDEX` | `0x10` | Write one LED by index. |
-| `LED_WRITE_XY` | `0x11` | Write one LED by coordinate. |
-| `LED_WRITE_INDEX_RANGE` | `0x12` | Write a range of LEDs. |
-| `LED_CANVAS_UPDATE` | `0x20` | Push LED canvas changes. |
-| `LED_CLEAR_SCREEN` | `0x21` | Clear the LED canvas/screen. |
-| `KEY_READ_INDEX` | `0x30` | Read key state by index. |
-| `KEY_READ_XY` | `0x31` | Read key state by coordinate. |
+The request payloads below start after the command byte.
+
+| Command | ID | Request payload | Success reply |
+| --- | ---: | --- | --- |
+| `PING` | `0x00` | none | ACK with `protocol_version width height led_count` |
+| `SET_INPUT_REPORT` | `0x01` | `report_type enabled` | ACK with no data |
+| `EXIT_APP` | `0x02` | none | ACK with no data, then app exits |
+| `LED_WRITE_INDEX` | `0x10` | `flags partition count (index color)...` | no success ACK |
+| `LED_WRITE_XY` | `0x11` | `flags partition count (x y color)...` | no success ACK |
+| `LED_WRITE_INDEX_RANGE` | `0x12` | `flags partition start_index count color...` | no success ACK |
+| `LED_CANVAS_UPDATE` | `0x20` | none | no success ACK |
+| `LED_CLEAR_SCREEN` | `0x21` | `[flags]` | no success ACK |
+| `KEY_READ_INDEX` | `0x30` | `index` | ACK with key info record |
+| `KEY_READ_XY` | `0x31` | `x y` | ACK with key info record |
+
+Commands documented as "no success ACK" still return an error reply if the request is malformed. Host tools should not wait for a success reply for those commands.
 
 ### `PING` (`0x00`)
 
@@ -201,6 +300,8 @@ report_type enabled
 ACK data: none.
 
 Input events are sent as `REPLY_INPUT_EVENT` (`0x90`) while reports are enabled.
+
+`report_type` values `0x00` and `0x01` currently both enable the same key info event stream.
 
 ### `EXIT_APP` (`0x02`)
 
@@ -281,10 +382,21 @@ Clears all LEDs to black.
 Request payload:
 
 ```text
-flags
+[flags]
 ```
 
-`flags` is optional. When bit `0x01` is set, Matrix OS refreshes LEDs immediately after clearing.
+`flags` is optional and is specific to `LED_CLEAR_SCREEN`. It does not use the LED write flag layout above.
+
+| Bit | Meaning |
+| --- | --- |
+| `0x01` | `LED_CLEAR_FLAG_REFRESH`: refresh LEDs immediately after clearing. |
+
+When `0x01` is not set, the clear is queued and the host should send `LED_CANVAS_UPDATE` when it is ready to show the cleared frame.
+
+```text
+0x21       # clear, queued
+0x21 0x01  # clear and refresh immediately
+```
 
 Successful clear commands do not send ACK replies. Errors reply with a non-zero status reply.
 
@@ -340,7 +452,9 @@ Fields:
 | `pressure` | Pressure value. HID is 16-bit; SysEx is 7-bit reduced. |
 | `velocity` | Velocity value. HID is 16-bit; SysEx is 7-bit reduced. |
 
-Developer APP currently reports keypad-class input for the function key and primary grid. Hold events are not emitted as asynchronous reports.
+Developer APP currently reports keypad-class input for the function key and primary grid.
+
+Use `KEY_READ_INDEX` or `KEY_READ_XY` when a host needs the current state of one input. Use `SET_INPUT_REPORT` for live input events.
 
 ## Replies And Errors
 
@@ -367,27 +481,18 @@ Status/error codes:
 | OK | `0x00` | Command accepted. |
 | Bad length | `0x02` | Payload length is wrong or incomplete. |
 | Bad payload | `0x03` | Payload values are invalid for the current device/state. |
-| Unknown command | `0x7F` | Command ID is not implemented. |
+| Unknown command | `0x7F` | Command ID is unsupported by Developer APP. |
 
 Some high-throughput LED commands skip ACK on success. Treat lack of an ACK as success only for commands documented above as skipping ACK, and still watch for non-zero status replies.
 
-## Minimal Host Flow
+## Host Implementation Notes
 
-```text
-System report 0xCB:
-  send 0x44                         # OPEN_DEVELOPER_APP
-  wait for 0xC4 ACK
-
-Developer APP report 0xFF:
-  send 0x00                         # PING
-  expect 0x80 0x00 version w h led_count
-
-Developer APP report 0xFF:
-  send 0x01 0x01 0x01               # SET_INPUT_REPORT, key info, enabled
-  expect 0x81 0x00                  # command | 0x80, OK
-```
-
-For HID, `SET_INPUT_REPORT` replies on `command | 0x80`, so command `0x01` replies as `0x81 0x00` on success. The same byte value `0x81` is also the SysEx error reply command. Always interpret replies in the context of the transport.
+- Keep at most one ACK-awaited command outstanding per report ID unless your host stack has a reply router.
+- Route `0x90` input reports separately from command replies.
+- For commands that skip success ACK, continue listening for error replies for a short timeout window.
+- HID report ordering is the host's transport ordering, but Developer APP processes up to four HID reports per app loop. Chunk large LED frames and avoid unbounded bursts.
+- A typical command timeout is `500..1000 ms`. After entering Developer APP, poll `PING` because app switching is asynchronous.
+- For LED mirroring, queue chunks with `LED_FLAG_CANVAS`, then send `LED_CANVAS_UPDATE` once per completed frame.
 
 ## Minimal WebHID Example
 

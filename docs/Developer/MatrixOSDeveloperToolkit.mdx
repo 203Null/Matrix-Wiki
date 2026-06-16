@@ -14,7 +14,9 @@ Matrix OS Developer Toolkit is a beta developer tool. It is useful for API work,
 
 You can try Matrix OS Developer Toolkit at [dev.203.io](https://dev.203.io).
 
-## Requirements
+The online toolkit is the fastest way to inspect the UI and try the simulator. Use a local run when you need the WebSocket JSON-RPC bridge, local builds, or automation scripts.
+
+## Local Requirements
 
 - Emscripten toolchain with `emcmake` and `emcc`
 - Node.js and npm
@@ -25,7 +27,7 @@ On Windows, the toolkit helper can discover common Emscripten install locations 
 
 ## Setup
 
-From the Matrix OS repository:
+Clone the [Matrix OS repository](https://github.com/203-Systems/MatrixOS), then run:
 
 ```powershell
 make DEVICE=MystrixSim setup
@@ -74,9 +76,11 @@ The WebUI can load local builds, packaged release assets, or proxied release ass
 
 ## JSON-RPC Bridge
 
-When the WebUI runs in the node-backed dev server, it exposes a local WebSocket JSON-RPC bridge for automation. Static builds show the bridge as unavailable.
+When the WebUI runs in the node-backed dev server, it exposes a local WebSocket JSON-RPC bridge for automation. Use it for repeatable tests and scripted checks against the browser-hosted runtime.
 
-The bridge is intended for local tooling and test automation. It can inspect runtime state and drive input, LED, log, MIDI, HID, serial, storage, and session operations through the live browser runtime.
+Static hosted builds do not expose this bridge. Keep the WebUI tab open while an external RPC client is connected, because the browser-hosted runtime is the active bridge target. If the tab is closed, external RPC clients receive a runtime-unavailable error.
+
+### Endpoint
 
 The default WebSocket endpoint is:
 
@@ -86,7 +90,57 @@ ws://localhost:4002
 
 You can override the port with `MATRIXOS_RPC_PORT`.
 
-The WebUI tab must stay open because the browser-hosted runtime is the active bridge target. If the tab is closed, external RPC clients will receive a runtime-unavailable error.
+### Message Shape
+
+Request:
+
+```json
+{
+  "jsonrpc": "2.0",
+  "id": "example-1",
+  "method": "python.status",
+  "params": {}
+}
+```
+
+Success response:
+
+```json
+{
+  "jsonrpc": "2.0",
+  "id": "example-1",
+  "result": {
+    "available": true,
+    "active": false,
+    "mode": "idle"
+  }
+}
+```
+
+Error response:
+
+```json
+{
+  "jsonrpc": "2.0",
+  "id": "example-1",
+  "error": {
+    "code": 4001,
+    "message": "Invalid params"
+  }
+}
+```
+
+Common bridge error codes:
+
+| Code | Meaning |
+| ---: | --- |
+| `4001` | Invalid params |
+| `4002` | Unknown target |
+| `4003` | Unsupported capability |
+| `4004` | Timeout |
+| `5001` | Internal error |
+
+### Common Methods
 
 Example RPC calls exposed by the WebUI include:
 
@@ -109,6 +163,19 @@ Example RPC calls exposed by the WebUI include:
 - `python.getOutput`
 - `python.stop`
 
+### Python Methods
+
+| Method | Params | Result |
+| --- | --- | --- |
+| `python.status` | `{}` | `{ available, active, mode, debug }` |
+| `python.runText` | `{ name, text, timeoutMs?, idleTimeoutMs? }` | `{ ok, name, size, mode, completed }` |
+| `python.stageFiles` | `{ files: [{ name, text }], entry? }` | `{ ok, count, entry }` |
+| `python.runStaged` | `{ timeoutMs?, idleTimeoutMs? }` | `{ ok, mode, completed }` |
+| `python.getOutput` | `{ last?, mode? }` | `{ entries: [{ timestamp, mode, text }] }` |
+| `python.stop` | `{ timeoutMs? }` | `{ ok, mode }` |
+
+`python.runText` is best for short smoke tests. Use `python.stageFiles` and `python.runStaged` for a complete app folder with helper modules.
+
 ### Check Bridge Status
 
 From the Matrix OS repository:
@@ -129,15 +196,15 @@ Read the output:
 node Devices/MystrixSim/WebUI/tools/rpc-test.mjs --ws ws://localhost:4002 --method python.getOutput --params '{"last":20}'
 ```
 
-### Run Core Python Smoke Tests
+### Run Python Smoke Tests
 
-The Matrix OS Developer Toolkit WebUI includes smoke scripts for Python runtime checks:
+The WebUI includes smoke scripts for Python runtime checks:
 
 ```powershell
-npm --prefix Devices/MystrixSim/WebUI run smoke:micropython -- --ws ws://localhost:4002 --suite core
+npm --prefix Devices/MystrixSim/WebUI run smoke:python -- --ws ws://localhost:4002 --suite core
 ```
 
-Use the full example suite when you are validating the Matrix OS source tree itself. The example suite can fail because of an example app or simulator regression even when your own snippet runs correctly.
+Use the full example suite when you are validating local Matrix OS changes. The example suite can fail because of an example app or simulator issue even when your own snippet runs correctly.
 
 ## Python Testing
 

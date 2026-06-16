@@ -10,7 +10,19 @@ Python app debugging in Matrix OS usually starts with `print()` output, then mov
 
 - In Matrix OS Developer Toolkit, use the Python panel output and runtime logs.
 - On hardware, use the Python REPL or app serial output.
-- For automation, use the toolkit JSON-RPC bridge and read output with `python.getOutput`.
+- For automation, use the [toolkit JSON-RPC bridge](./MatrixOSDeveloperToolkit#json-rpc-bridge) and read output with `python.getOutput`.
+
+## Hardware Serial And REPL
+
+1. Open the Python app from the Matrix OS application launcher.
+2. Connect the device to the host over USB.
+3. Open the Matrix OS USB serial port in a serial terminal.
+4. Use `115200` baud if the terminal asks for a speed.
+5. Run short statements in the REPL, or launch a standalone Python app and watch the same serial output for `print()` messages and tracebacks.
+
+The port appears as a normal serial device, such as a `COM` port on Windows. If several serial ports are present, unplug and reconnect the device to see which port appears.
+
+If the serial port is visible but no Python prompt appears, make sure the Python app is active. If a standalone app exits immediately, check `AppInfo.json`, top-level exceptions, and whether the app needs a `loop()` function.
 
 ## Minimal Debug Pattern
 
@@ -65,8 +77,6 @@ for i in range(20):
         if point and keypad.get("pressed"):
             MatrixOS.LED.set_xy(point[0], point[1], (255, 255, 255))
             MatrixOS.LED.update()
-
-    MatrixOS.SYS.task_yield()
 
 print("loop done")
 ```
