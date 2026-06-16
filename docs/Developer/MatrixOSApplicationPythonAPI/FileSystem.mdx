@@ -1,38 +1,259 @@
 ---
-title: FileSystem
+title: File System
 sidebar_position: 7
 ---
 
 # FileSystem API
 
-`MatrixOS.FileSystem` uses the app sandbox. Standard `open(path, mode)` is also supported.
+## Overview
+
+`MatrixOS.FileSystem` reads and writes inside the current app's sandbox. Standard `open(path, mode)` is also supported and uses the same sandbox behavior.
 
 ```python
 import MatrixOS
 
 if MatrixOS.FileSystem.available():
+    # This file is stored inside this app's private AppData folder,
+    # not at the root of the SD card or toolkit filesystem.
     MatrixOS.FileSystem.write_text("settings.txt", "mode=debug\n")
+
+    # Read the same sandboxed file back as text.
     text = MatrixOS.FileSystem.read_text("settings.txt")
     print(text)
 ```
 
-Methods:
+`read_*()` returns `None` when a file does not exist. `write_*()` creates or overwrites the target file, but parent directories should already exist. Use `mkdir()` before writing into a subdirectory.
 
-- `available() -> bool`
-- `exists(path: str) -> bool`
-- `mkdir(path: str) -> bool`
-- `remove(path: str) -> bool`
-- `rmdir(path: str) -> bool`
-- `rename(from_path: str, to_path: str) -> bool`
-- `list_dir(path: str = "/") -> list[str]`
-- `read_bytes(path: str) -> bytes | None`
-- `write_bytes(path: str, data: bytes) -> bool`
-- `read_text(path: str, encoding: str = "utf-8") -> str | None`
-- `write_text(path: str, text: str, encoding: str = "utf-8") -> bool`
+## Sandbox Behavior
 
-`read_*()` returns `None` when a file does not exist. `write_*()` creates or overwrites files and creates parent directories when needed.
+For a running Python app, FileSystem paths are sandboxed under that app's private data directory:
 
-Relative paths resolve from the current script directory. In Matrix OS Developer Toolkit staged apps, this resolves under `host:/python/`.
+```text
+/MatrixOS/AppData/<author>-<app name>/
+```
+
+Use app-relative paths such as `"settings.txt"` or `"notes/last.txt"` in normal app code. A leading slash does not escape the sandbox; `"/settings.txt"` still resolves inside the app sandbox. Parent traversal with `..` is rejected, and ordinary Python apps cannot use privileged root paths such as `rootfs:/...` or `//...`.
+
+This keeps app data separated between apps. If two apps both write `"settings.txt"`, each app writes to its own sandbox.
+
+In Matrix OS Developer Toolkit staged apps, the same app-relative idea applies to the toolkit-hosted Python workspace.
+
+## `MatrixOS.FileSystem.available`
+
+```text
+available() -> bool
+```
+
+Checks whether app storage is available.
+
+**Returns:**
+
+- `bool`: `True` when file storage can be used.
+
+---
+
+## `MatrixOS.FileSystem.exists`
+
+```text
+exists(path: str) -> bool
+```
+
+Checks whether a file or directory exists.
+
+**Parameters:**
+
+- `path`: File or directory path.
+
+**Returns:**
+
+- `bool`: `True` when the path exists.
+
+---
+
+## `MatrixOS.FileSystem.mkdir`
+
+```text
+mkdir(path: str) -> bool
+```
+
+Creates a directory.
+
+**Parameters:**
+
+- `path`: Directory path to create.
+
+**Returns:**
+
+- `bool`: `True` when the directory exists or was created.
+
+---
+
+## `MatrixOS.FileSystem.remove`
+
+```text
+remove(path: str) -> bool
+```
+
+Removes a file.
+
+**Parameters:**
+
+- `path`: File path to remove.
+
+**Returns:**
+
+- `bool`: `True` when removed.
+
+---
+
+## `MatrixOS.FileSystem.rmdir`
+
+```text
+rmdir(path: str) -> bool
+```
+
+Removes a directory.
+
+**Parameters:**
+
+- `path`: Directory path to remove.
+
+**Returns:**
+
+- `bool`: `True` when removed.
+
+---
+
+## `MatrixOS.FileSystem.rename`
+
+```text
+rename(from_path: str, to_path: str) -> bool
+```
+
+Renames or moves a file or directory.
+
+**Parameters:**
+
+- `from_path`: Existing path.
+- `to_path`: New path.
+
+**Returns:**
+
+- `bool`: `True` when renamed.
+
+---
+
+## `MatrixOS.FileSystem.list_dir`
+
+```text
+list_dir(path: str = "/") -> list[str]
+```
+
+Lists the entries in a directory.
+
+**Parameters:**
+
+- `path`: Directory path. Defaults to the app storage root.
+
+**Returns:**
+
+- `list[str]`: Entry names.
+
+---
+
+## `MatrixOS.FileSystem.read_bytes`
+
+```text
+read_bytes(path: str) -> bytes | None
+```
+
+Reads a file as bytes.
+
+**Parameters:**
+
+- `path`: File path.
+
+**Returns:**
+
+- `bytes | None`: File bytes, or `None` when the file does not exist.
+
+---
+
+## `MatrixOS.FileSystem.write_bytes`
+
+```text
+write_bytes(path: str, data: bytes) -> bool
+```
+
+Writes bytes to a file.
+
+**Parameters:**
+
+- `path`: File path.
+- `data`: Bytes-like value to write.
+
+**Returns:**
+
+- `bool`: `True` when the full data buffer was written and flushed.
+
+---
+
+## `MatrixOS.FileSystem.read_text`
+
+```text
+read_text(path: str, encoding: str = "utf-8") -> str | None
+```
+
+Reads a file as text.
+
+**Parameters:**
+
+- `path`: File path.
+- `encoding`: Accepted for Python API compatibility. Current text reads use Matrix OS string data.
+
+**Returns:**
+
+- `str | None`: File text, or `None` when the file does not exist.
+
+---
+
+## `MatrixOS.FileSystem.write_text`
+
+```text
+write_text(path: str, text: str, encoding: str = "utf-8") -> bool
+```
+
+Writes text to a file.
+
+**Parameters:**
+
+- `path`: File path.
+- `text`: Text to write.
+- `encoding`: Accepted for Python API compatibility. Current text writes use the string bytes provided by the runtime.
+
+**Returns:**
+
+- `bool`: `True` when written and flushed.
+
+## Read And Write A File
+
+```python
+import MatrixOS
+
+if MatrixOS.FileSystem.available():
+    # Create the subdirectory first; write_text() creates the file,
+    # but it does not create arbitrary parent folders.
+    MatrixOS.FileSystem.mkdir("notes")
+
+    MatrixOS.FileSystem.write_text("notes/last.txt", "hello\n")
+
+    # The path is still inside this app's sandbox.
+    text = MatrixOS.FileSystem.read_text("notes/last.txt")
+    print(text)
+else:
+    # Hardware usually needs usable device storage before files work.
+    print("storage unavailable")
+```
 
 ## External Imports
 
@@ -40,4 +261,20 @@ The current script directory is added to `sys.path`, so a staged app can upload 
 
 ```python
 import helper
+```
+
+Example helper:
+
+```python title="helper.py"
+def clamp(value, lower, upper):
+    # Keep reusable pure-Python helpers next to main.py.
+    return max(lower, min(upper, value))
+```
+
+```python title="main.py"
+import helper
+
+# Imports resolve from the app folder, so helper.py can sit beside main.py.
+level = helper.clamp(300, 0, 255)
+print(level)
 ```

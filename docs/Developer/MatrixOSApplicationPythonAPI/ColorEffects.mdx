@@ -5,25 +5,119 @@ sidebar_position: 14
 
 # ColorEffects API
 
-`MatrixOS.ColorEffects` exposes Matrix OS color effect helpers.
+## Overview
 
-Methods:
+`MatrixOS.ColorEffects` creates packed RGB colors for common animated effects. Use it inside an app loop, then draw the returned color with `MatrixOS.LED` or pass it to UI color callbacks.
 
-- `rainbow(period: int = 1000, offset: int = 0) -> int`
-- `color_breath(color: ColorLike, period: int = 1000, offset: int = 0) -> int`
-- `color_strobe(color: ColorLike, period: int = 1000, offset: int = 0) -> int`
-- `color_saw(color: ColorLike, period: int = 1000, offset: int = 0) -> int`
+`period` and `offset` are milliseconds. The effect phase is based on current Matrix OS time minus `offset`; use the default `offset=0`, or capture one start time and reuse it to align an effect to an app event.
 
-`period` must be greater than `0`, otherwise the function raises `ValueError`.
+Use a positive `period`. Passing `0` raises `ValueError`.
 
 ```python
 import MatrixOS
 
-while True:
+def loop():
+    # Recompute the animation color each frame from Matrix OS time.
     color = MatrixOS.ColorEffects.rainbow(1000)
+
+    # ColorEffects returns a packed RGB value that LED APIs accept.
     MatrixOS.LED.fill(color)
     MatrixOS.LED.update()
+
+    # Sleep briefly so the animation does not spin as fast as possible.
     MatrixOS.SYS.sleep_ms(16)
 ```
 
-This is an app-loop animation pattern. For an RPC smoke test, use a bounded loop instead of `while True`.
+## `MatrixOS.ColorEffects.rainbow`
+
+```text
+rainbow(period: int = 1000, offset: int = 0) -> int
+```
+
+Returns an animated rainbow color for the current Matrix OS time.
+
+**Parameters:**
+
+- `period`: Full rainbow cycle time in milliseconds. Must be greater than `0`.
+- `offset`: Phase offset in milliseconds.
+
+**Returns:**
+
+- `int`: Packed RGB color.
+
+---
+
+## `MatrixOS.ColorEffects.color_breath`
+
+```text
+color_breath(color: ColorLike, period: int = 1000, offset: int = 0) -> int
+```
+
+Returns `color` with a breathing brightness envelope.
+
+**Parameters:**
+
+- `color`: Packed RGB integer, RGB tuple, or RGBW tuple.
+- `period`: Full breath cycle time in milliseconds. Must be greater than `0`.
+- `offset`: Phase offset in milliseconds.
+
+**Returns:**
+
+- `int`: Packed RGB color.
+
+---
+
+## `MatrixOS.ColorEffects.color_strobe`
+
+```text
+color_strobe(color: ColorLike, period: int = 1000, offset: int = 0) -> int
+```
+
+Returns `color` during the on phase and black during the off phase.
+
+**Parameters:**
+
+- `color`: Packed RGB integer, RGB tuple, or RGBW tuple.
+- `period`: Full strobe cycle time in milliseconds. Must be greater than `0`.
+- `offset`: Phase offset in milliseconds.
+
+**Returns:**
+
+- `int`: Packed RGB color.
+
+---
+
+## `MatrixOS.ColorEffects.color_saw`
+
+```text
+color_saw(color: ColorLike, period: int = 1000, offset: int = 0) -> int
+```
+
+Returns `color` with a sawtooth brightness ramp.
+
+**Parameters:**
+
+- `color`: Packed RGB integer, RGB tuple, or RGBW tuple.
+- `period`: Full ramp cycle time in milliseconds. Must be greater than `0`.
+- `offset`: Phase offset in milliseconds.
+
+**Returns:**
+
+- `int`: Packed RGB color.
+
+## Bounded Test Example
+
+```python
+import MatrixOS
+
+# Capture one start time so every iteration uses the same animation phase origin.
+start = MatrixOS.SYS.millis()
+
+for _ in range(10):
+    color = MatrixOS.ColorEffects.color_breath((0, 255, 255), 1000, start)
+    MatrixOS.LED.fill(color)
+    MatrixOS.LED.update()
+
+    # Keep smoke tests bounded; a standalone app would put this in loop().
+    MatrixOS.SYS.sleep_ms(16)
+```

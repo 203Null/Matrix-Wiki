@@ -5,10 +5,34 @@ sidebar_position: 9
 
 # Utils API
 
-`MatrixOS.Utils` exposes small helper functions.
+## Overview
 
-Methods:
+`MatrixOS.Utils` exposes low-level helper functions. Most apps do not need this page; prefer the higher-level APIs first.
 
-- `string_hash(text: str) -> int`
+## `MatrixOS.Utils.string_hash`
 
-Normal NVS users do not need to call `string_hash()` manually. String keys are hashed by the binding.
+```text
+string_hash(text: str) -> int
+```
+
+Returns the same numeric key Matrix OS uses internally for a string.
+
+**Parameters:**
+
+- `text`: Source string.
+
+**Returns:**
+
+- `int`: Matrix OS string hash.
+
+Normal NVS users do not need to call this manually because `MatrixOS.NVS.get(...)` and `MatrixOS.NVS.set(...)` accept string keys directly.
+
+Use it only when you need to interoperate with a C++ app or protocol field that already expects the numeric Matrix OS string hash.
+
+```python
+import MatrixOS
+
+# Only use this when another API already expects the numeric hash.
+key = MatrixOS.Utils.string_hash("HelloPython brightness")
+print(key)
+```

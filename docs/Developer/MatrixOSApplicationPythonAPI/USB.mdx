@@ -5,22 +5,157 @@ sidebar_position: 11
 
 # USB API
 
+## Overview
+
 `MatrixOS.USB` exposes USB and CDC helpers.
 
-## `MatrixOS.USB`
+Use `available()` before `read()` in app loops so the app can return when no CDC data is waiting.
 
-- `connected() -> bool`
+## `MatrixOS.USB.connected`
 
-## `MatrixOS.USB.CDC`
+```text
+connected() -> bool
+```
 
-- `connected() -> bool`
-- `available() -> int`
-- `poll() -> None`
-- `print(text: str) -> None`
-- `println(text: str) -> None`
-- `flush() -> None`
-- `read() -> int | None`
-- `read_bytes(length: int) -> bytes`
-- `read_string() -> str`
+Checks whether USB is connected.
 
-`read()` returns `None` when no data is available. `read_bytes(length)` reads up to `length` bytes and returns `b""` when no data is available.
+**Returns:**
+
+- `bool`: `True` when USB is connected.
+
+---
+
+## `MatrixOS.USB.CDC.connected`
+
+```text
+connected() -> bool
+```
+
+Checks whether USB CDC is connected.
+
+**Returns:**
+
+- `bool`: `True` when CDC is connected.
+
+---
+
+## `MatrixOS.USB.CDC.available`
+
+```text
+available() -> int
+```
+
+Returns the number of bytes waiting in the CDC receive buffer.
+
+**Returns:**
+
+- `int`: Available byte count.
+
+---
+
+## `MatrixOS.USB.CDC.poll`
+
+```text
+poll() -> None
+```
+
+Polls the CDC interface.
+
+---
+
+## `MatrixOS.USB.CDC.print`
+
+```text
+print(text: str) -> None
+```
+
+Writes text to CDC without adding a newline.
+
+**Parameters:**
+
+- `text`: Text to write.
+
+---
+
+## `MatrixOS.USB.CDC.println`
+
+```text
+println(text: str) -> None
+```
+
+Writes text to CDC with a newline.
+
+**Parameters:**
+
+- `text`: Text to write.
+
+---
+
+## `MatrixOS.USB.CDC.flush`
+
+```text
+flush() -> None
+```
+
+Flushes pending CDC output.
+
+---
+
+## `MatrixOS.USB.CDC.read`
+
+```text
+read() -> int | None
+```
+
+Reads one byte from CDC.
+
+**Returns:**
+
+- `int | None`: Byte value `0..255`, or `None` when no data is available.
+
+---
+
+## `MatrixOS.USB.CDC.read_bytes`
+
+```text
+read_bytes(length: int) -> bytes
+```
+
+Reads up to `length` bytes from CDC.
+
+**Parameters:**
+
+- `length`: Maximum number of bytes to read.
+
+**Returns:**
+
+- `bytes`: Bytes read. Returns `b""` when no data is available or `length <= 0`.
+
+---
+
+## `MatrixOS.USB.CDC.read_string`
+
+```text
+read_string() -> str
+```
+
+Reads the current CDC receive buffer as a string.
+
+**Returns:**
+
+- `str`: String content, or an empty string when no data is available.
+
+## CDC Echo Example
+
+```python
+import MatrixOS
+
+if MatrixOS.USB.CDC.connected():
+    # Send a short banner once the CDC connection is active.
+    MatrixOS.USB.CDC.println("ready")
+
+    # Avoid blocking the app loop when no serial data is waiting.
+    if MatrixOS.USB.CDC.available():
+        value = MatrixOS.USB.CDC.read()
+        MatrixOS.USB.CDC.println("byte " + str(value))
+```

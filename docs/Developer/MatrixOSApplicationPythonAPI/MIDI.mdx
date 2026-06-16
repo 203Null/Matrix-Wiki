@@ -5,65 +5,567 @@ sidebar_position: 10
 
 # MIDI API
 
-`MatrixOS.MIDI` uses a Pythonic `MidiPacket` object and `snake_case` methods.
+## Overview
 
-## Module Methods
+Use `MatrixOS.MIDI` to receive and send MIDI packets from a Python app.
 
-- `get(timeout_ms=0) -> MidiPacket | None`
-- `send(packet, port=MIDI.PORT_EACH_CLASS, timeout_ms=0) -> bool`
-- `send_sysex(port, data, include_meta=True) -> bool`
-- `is_note_on(packet) -> bool`
-- `is_note_off(packet) -> bool`
+Value ranges:
 
-`is_note_on()` returns true only for note-on packets with velocity greater than `0`.
+- MIDI channel: `0..15`
+- Seven-bit MIDI data: `0..127`
+- Pitch bend and song position: `0..16383`
 
-`is_note_off()` accepts both real note-off packets and the common note-on with velocity `0` form.
+## `MatrixOS.MIDI.get`
 
-## Packet Factories
+```text
+get(timeout_ms: int = 0) -> MidiPacket | None
+```
 
-- `note_on(channel, note, velocity) -> MidiPacket`
-- `note_off(channel, note, velocity) -> MidiPacket`
-- `aftertouch(channel, note, pressure) -> MidiPacket`
-- `control_change(channel, controller, value) -> MidiPacket`
-- `program_change(channel, program) -> MidiPacket`
-- `channel_pressure(channel, pressure) -> MidiPacket`
-- `pitch_bend(channel, value) -> MidiPacket`
-- `song_position(position) -> MidiPacket`
-- `song_select(song) -> MidiPacket`
-- `mtc_quarter_frame(value) -> MidiPacket`
-- `tune_request() -> MidiPacket`
-- `clock() -> MidiPacket`
-- `tick() -> MidiPacket`
-- `start() -> MidiPacket`
-- `continue_() -> MidiPacket`
-- `stop() -> MidiPacket`
-- `active_sense() -> MidiPacket`
-- `reset() -> MidiPacket`
+Reads the next MIDI packet.
+
+**Parameters:**
+
+- `timeout_ms`: Maximum time to wait in milliseconds. `0` is non-blocking.
+
+**Returns:**
+
+- `MidiPacket | None`: MIDI packet, or `None` when no packet is available.
+
+---
+
+## `MatrixOS.MIDI.send`
+
+```text
+send(packet: MidiPacket, port: int = MatrixOS.MIDI.PORT_EACH_CLASS, timeout_ms: int = 0) -> bool
+```
+
+Sends one MIDI packet.
+
+**Parameters:**
+
+- `packet`: Packet to send.
+- `port`: Target MIDI port mask.
+- `timeout_ms`: Maximum time to wait while sending.
+
+**Returns:**
+
+- `bool`: `True` when sent.
+
+---
+
+## `MatrixOS.MIDI.send_sysex`
+
+```text
+send_sysex(port: int, data: bytes, include_meta: bool = True) -> bool
+```
+
+Sends a SysEx payload.
+
+**Parameters:**
+
+- `port`: Target MIDI port mask.
+- `data`: SysEx payload bytes.
+- `include_meta`: When `True`, Matrix OS includes SysEx start/end framing.
+
+**Returns:**
+
+- `bool`: `True` when sent.
+
+---
+
+## `MatrixOS.MIDI.is_note_on`
+
+```text
+is_note_on(packet: MidiPacket) -> bool
+```
+
+Checks whether a packet is a note-on message with velocity greater than `0`.
+
+**Parameters:**
+
+- `packet`: Packet to inspect.
+
+**Returns:**
+
+- `bool`: `True` for note-on with nonzero velocity.
+
+---
+
+## `MatrixOS.MIDI.is_note_off`
+
+```text
+is_note_off(packet: MidiPacket) -> bool
+```
+
+Checks whether a packet is a note-off message.
+
+**Parameters:**
+
+- `packet`: Packet to inspect.
+
+**Returns:**
+
+- `bool`: `True` for real note-off packets and for the common note-on with velocity `0` form.
+
+## Send A Note From Input
+
+```python
+import MatrixOS
+
+def loop():
+    # Drain all input events so quick key presses do not pile up.
+    event = MatrixOS.Input.get_event()
+    while event is not None:
+        keypad = event.get("keypad")
+        point = event.get("point")
+        if keypad and point and keypad.get("pressed"):
+            # Map the X coordinate to a simple chromatic note row.
+            note = 60 + point[0]
+            MatrixOS.MIDI.send(MatrixOS.MIDI.note_on(0, note, 100))
+        elif keypad and point and keypad.get("released"):
+            note = 60 + point[0]
+            MatrixOS.MIDI.send(MatrixOS.MIDI.note_off(0, note, 0))
+        event = MatrixOS.Input.get_event()
+```
+
+## Light An LED From MIDI
+
+```python
+import MatrixOS
+
+def loop():
+    # Drain all pending MIDI packets in this loop call.
+    packet = MatrixOS.MIDI.get()
+    while packet is not None:
+        if MatrixOS.MIDI.is_note_on(packet):
+            # Reuse the note number as a stable LED index for visual feedback.
+            led = packet.note() % MatrixOS.LED.count()
+            level = min(255, packet.velocity() * 2)
+            MatrixOS.LED.set_index(led, (0, level, 0))
+            MatrixOS.LED.update()
+        elif MatrixOS.MIDI.is_note_off(packet):
+            led = packet.note() % MatrixOS.LED.count()
+            MatrixOS.LED.set_index(led, (0, 0, 0))
+            MatrixOS.LED.update()
+
+        packet = MatrixOS.MIDI.get()
+```
+
+This app-loop pattern drains all pending MIDI packets, lights the LED indexed by the MIDI note, and turns it off on note-off.
+
+## Packet Factory Methods
+
+Each factory returns a `MidiPacket`.
+
+### `MatrixOS.MIDI.note_on`
+
+```text
+note_on(channel: int, note: int, velocity: int) -> MidiPacket
+```
+
+Creates a note-on packet.
+
+**Parameters:** `channel` is `0..15`; `note` and `velocity` are `0..127`.
+
+---
+
+### `MatrixOS.MIDI.note_off`
+
+```text
+note_off(channel: int, note: int, velocity: int) -> MidiPacket
+```
+
+Creates a note-off packet.
+
+**Parameters:** `channel` is `0..15`; `note` and `velocity` are `0..127`.
+
+---
+
+### `MatrixOS.MIDI.aftertouch`
+
+```text
+aftertouch(channel: int, note: int, pressure: int) -> MidiPacket
+```
+
+Creates a polyphonic aftertouch packet.
+
+**Parameters:** `channel` is `0..15`; `note` and `pressure` are `0..127`.
+
+---
+
+### `MatrixOS.MIDI.control_change`
+
+```text
+control_change(channel: int, controller: int, value: int) -> MidiPacket
+```
+
+Creates a control-change packet.
+
+**Parameters:** `channel` is `0..15`; `controller` and `value` are `0..127`.
+
+---
+
+### `MatrixOS.MIDI.program_change`
+
+```text
+program_change(channel: int, program: int) -> MidiPacket
+```
+
+Creates a program-change packet.
+
+**Parameters:** `channel` is `0..15`; `program` is `0..127`.
+
+---
+
+### `MatrixOS.MIDI.channel_pressure`
+
+```text
+channel_pressure(channel: int, pressure: int) -> MidiPacket
+```
+
+Creates a channel-pressure packet.
+
+**Parameters:** `channel` is `0..15`; `pressure` is `0..127`.
+
+---
+
+### `MatrixOS.MIDI.pitch_bend`
+
+```text
+pitch_bend(channel: int, value: int) -> MidiPacket
+```
+
+Creates a pitch-bend packet.
+
+**Parameters:** `channel` is `0..15`; `value` is `0..16383`.
+
+---
+
+### `MatrixOS.MIDI.song_position`
+
+```text
+song_position(position: int) -> MidiPacket
+```
+
+Creates a song-position packet.
+
+**Parameters:** `position` is `0..16383`.
+
+---
+
+### `MatrixOS.MIDI.song_select`
+
+```text
+song_select(song: int) -> MidiPacket
+```
+
+Creates a song-select packet.
+
+**Parameters:** `song` is `0..127`.
+
+---
+
+### `MatrixOS.MIDI.mtc_quarter_frame`
+
+```text
+mtc_quarter_frame(value: int) -> MidiPacket
+```
+
+Creates an MTC quarter-frame packet.
+
+**Parameters:** `value` is `0..127`.
+
+---
+
+### `MatrixOS.MIDI.tune_request`
+
+```text
+tune_request() -> MidiPacket
+```
+
+Creates a tune-request packet.
+
+---
+
+### `MatrixOS.MIDI.clock`
+
+```text
+clock() -> MidiPacket
+```
+
+Creates a MIDI clock packet.
+
+---
+
+### `MatrixOS.MIDI.tick`
+
+```text
+tick() -> MidiPacket
+```
+
+Creates a MIDI tick packet.
+
+---
+
+### `MatrixOS.MIDI.start`
+
+```text
+start() -> MidiPacket
+```
+
+Creates a MIDI start packet.
+
+---
+
+### `MatrixOS.MIDI.continue_`
+
+```text
+continue_() -> MidiPacket
+```
+
+Creates a MIDI continue packet.
 
 `continue` is a Python keyword, so the factory is named `continue_()`.
 
+---
+
+### `MatrixOS.MIDI.stop`
+
+```text
+stop() -> MidiPacket
+```
+
+Creates a MIDI stop packet.
+
+---
+
+### `MatrixOS.MIDI.active_sense`
+
+```text
+active_sense() -> MidiPacket
+```
+
+Creates an active-sense packet.
+
+---
+
+### `MatrixOS.MIDI.reset`
+
+```text
+reset() -> MidiPacket
+```
+
+Creates a MIDI reset packet.
+
 ## `MidiPacket`
 
-- `status() -> int`
-- `set_status(status: int) -> bool`
-- `port() -> int`
-- `set_port(port: int) -> None`
-- `channel() -> int | None`
-- `set_channel(channel: int) -> bool`
-- `note() -> int | None`
-- `set_note(note: int) -> bool`
-- `controller() -> int | None`
-- `set_controller(controller: int) -> bool`
-- `velocity() -> int | None`
-- `set_velocity(velocity: int) -> bool`
-- `value() -> int | None`
-- `set_value(value: int) -> bool`
-- `length() -> int`
-- `is_sysex() -> bool`
-- `is_sysex_start() -> bool`
-- `data() -> tuple[int, int, int]`
+You can construct a packet directly when a factory is not convenient:
 
-`channel` is `0..15`. Seven-bit MIDI data is `0..127`. Pitch bend and song position use `0..16383`.
+```python
+MatrixOS.MIDI.MidiPacket()
+MatrixOS.MIDI.MidiPacket(other_packet)
+MatrixOS.MIDI.MidiPacket(status, data0, data1, data2)
+```
+
+### `packet.status`
+
+```text
+status() -> int
+```
+
+Returns the packet status byte.
+
+---
+
+### `packet.set_status`
+
+```text
+set_status(status: int) -> bool
+```
+
+Sets the packet status.
+
+**Returns:** `True` when the status is valid for the packet.
+
+---
+
+### `packet.port`
+
+```text
+port() -> int
+```
+
+Returns the packet port mask.
+
+---
+
+### `packet.set_port`
+
+```text
+set_port(port: int) -> None
+```
+
+Sets the packet port mask.
+
+---
+
+### `packet.channel`
+
+```text
+channel() -> int | None
+```
+
+Returns the channel for channel messages, or `None` when the packet has no channel.
+
+---
+
+### `packet.set_channel`
+
+```text
+set_channel(channel: int) -> bool
+```
+
+Sets the packet channel.
+
+**Parameters:** `channel` is `0..15`.
+
+**Returns:** `True` when the packet supports channel data.
+
+---
+
+### `packet.note`
+
+```text
+note() -> int | None
+```
+
+Returns the packet note number, or `None` when not applicable.
+
+---
+
+### `packet.set_note`
+
+```text
+set_note(note: int) -> bool
+```
+
+Sets the packet note number.
+
+**Parameters:** `note` is `0..127`.
+
+**Returns:** `True` when the packet supports note data.
+
+---
+
+### `packet.controller`
+
+```text
+controller() -> int | None
+```
+
+Returns the controller number, or `None` when not applicable.
+
+---
+
+### `packet.set_controller`
+
+```text
+set_controller(controller: int) -> bool
+```
+
+Sets the controller number.
+
+**Parameters:** `controller` is `0..127`.
+
+**Returns:** `True` when the packet supports controller data.
+
+---
+
+### `packet.velocity`
+
+```text
+velocity() -> int | None
+```
+
+Returns note velocity, or `None` when not applicable.
+
+---
+
+### `packet.set_velocity`
+
+```text
+set_velocity(velocity: int) -> bool
+```
+
+Sets note velocity.
+
+**Parameters:** `velocity` is `0..127`.
+
+**Returns:** `True` when the packet supports velocity data.
+
+---
+
+### `packet.value`
+
+```text
+value() -> int | None
+```
+
+Returns the packet value field, or `None` when not applicable.
+
+---
+
+### `packet.set_value`
+
+```text
+set_value(value: int) -> bool
+```
+
+Sets the packet value field.
+
+**Parameters:** `value` is `0..16383`.
+
+**Returns:** `True` when the packet supports a value field.
+
+---
+
+### `packet.length`
+
+```text
+length() -> int
+```
+
+Returns the MIDI byte length represented by the packet.
+
+---
+
+### `packet.is_sysex`
+
+```text
+is_sysex() -> bool
+```
+
+Returns whether the packet is part of a SysEx message.
+
+---
+
+### `packet.is_sysex_start`
+
+```text
+is_sysex_start() -> bool
+```
+
+Returns whether the packet starts a SysEx message.
+
+---
+
+### `packet.data`
+
+```text
+data() -> tuple[int, int, int]
+```
+
+Returns the packet's three raw data bytes.
 
 ## Status Constants
 

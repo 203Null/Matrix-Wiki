@@ -5,6 +5,8 @@ sidebar_position: 6
 
 # NVS API
 
+## Overview
+
 `MatrixOS.NVS` stores app settings. Use string keys for normal app settings.
 
 ```python
@@ -14,24 +16,286 @@ mode = MatrixOS.NVS.get("Python Dice mode", 0)
 MatrixOS.NVS.set("Python Dice mode", mode + 1)
 ```
 
-Recommended methods:
-
-- `get(key: str | int, default=None) -> bool | int | str | bytes | None`
-- `set(key: str | int, value: bool | int | str | bytes | bytearray) -> bool`
-
 When no default is provided, `get()` returns existing data as raw `bytes`, or `None` when the key does not exist. When a default is provided, the binding decodes according to the default type.
 
-Typed helpers:
+Use a string key that includes your app name so it does not collide with another app's setting.
 
-- `get_u8(key: str | int, default: int) -> int`
-- `set_u8(key: str | int, value: int) -> bool`
-- `get_u16(key: str | int, default: int) -> int`
-- `set_u16(key: str | int, value: int) -> bool`
-- `get_u32(key: str | int, default: int) -> int`
-- `set_u32(key: str | int, value: int) -> bool`
-- `get_size(key: str | int) -> int`
-- `delete(key: str | int) -> bool`
-- `get_bytes(key: str | int, default: bytes | None = None) -> bytes | None`
-- `set_bytes(key: str | int, data: bytes) -> bool`
-- `get_string(key: str | int, default: str = "") -> str`
-- `set_string(key: str | int, value: str) -> bool`
+## `MatrixOS.NVS.get`
+
+```text
+get(key: str | int, default=None) -> bool | int | str | bytes | None
+```
+
+Reads a value from app settings.
+
+**Parameters:**
+
+- `key`: String key or numeric Matrix OS string hash.
+- `default`: Optional default value. Its type controls how stored bytes are decoded.
+
+**Returns:**
+
+- `bool | int | str | bytes | None`: Stored value, decoded using `default` when provided. Returns `default` or `None` when the key does not exist.
+
+---
+
+## `MatrixOS.NVS.set`
+
+```text
+set(key: str | int, value: bool | int | str | bytes | bytearray) -> bool
+```
+
+Writes a value to app settings.
+
+**Parameters:**
+
+- `key`: String key or numeric Matrix OS string hash.
+- `value`: Value to store. Integers must be unsigned.
+
+**Returns:**
+
+- `bool`: `True` when the value was stored.
+
+`set()` stores `bool` as one byte, stores unsigned integers using the smallest `u8` / `u16` / `u32` width that fits, stores strings as UTF-8 bytes, and stores `bytes` / `bytearray` as raw bytes.
+
+---
+
+## `MatrixOS.NVS.get_u8`
+
+```text
+get_u8(key: str | int, default: int) -> int
+```
+
+Reads an unsigned 8-bit value.
+
+**Parameters:**
+
+- `key`: String key or numeric Matrix OS string hash.
+- `default`: Value returned when the key does not exist.
+
+**Returns:**
+
+- `int`: Stored value or default.
+
+---
+
+## `MatrixOS.NVS.set_u8`
+
+```text
+set_u8(key: str | int, value: int) -> bool
+```
+
+Writes an unsigned 8-bit value.
+
+**Parameters:**
+
+- `key`: String key or numeric Matrix OS string hash.
+- `value`: Value to store. The runtime stores the low 8 bits.
+
+**Returns:**
+
+- `bool`: `True` when stored.
+
+---
+
+## `MatrixOS.NVS.get_u16`
+
+```text
+get_u16(key: str | int, default: int) -> int
+```
+
+Reads an unsigned 16-bit value.
+
+**Parameters:**
+
+- `key`: String key or numeric Matrix OS string hash.
+- `default`: Value returned when the key does not exist.
+
+**Returns:**
+
+- `int`: Stored value or default.
+
+---
+
+## `MatrixOS.NVS.set_u16`
+
+```text
+set_u16(key: str | int, value: int) -> bool
+```
+
+Writes an unsigned 16-bit value.
+
+**Parameters:**
+
+- `key`: String key or numeric Matrix OS string hash.
+- `value`: Value to store. The runtime stores the low 16 bits.
+
+**Returns:**
+
+- `bool`: `True` when stored.
+
+---
+
+## `MatrixOS.NVS.get_u32`
+
+```text
+get_u32(key: str | int, default: int) -> int
+```
+
+Reads an unsigned 32-bit value.
+
+**Parameters:**
+
+- `key`: String key or numeric Matrix OS string hash.
+- `default`: Value returned when the key does not exist.
+
+**Returns:**
+
+- `int`: Stored value or default.
+
+---
+
+## `MatrixOS.NVS.set_u32`
+
+```text
+set_u32(key: str | int, value: int) -> bool
+```
+
+Writes an unsigned 32-bit value.
+
+**Parameters:**
+
+- `key`: String key or numeric Matrix OS string hash.
+- `value`: Value to store. The runtime stores the low 32 bits.
+
+**Returns:**
+
+- `bool`: `True` when stored.
+
+---
+
+## `MatrixOS.NVS.get_size`
+
+```text
+get_size(key: str | int) -> int
+```
+
+Returns the stored byte size for a key.
+
+**Parameters:**
+
+- `key`: String key or numeric Matrix OS string hash.
+
+**Returns:**
+
+- `int`: Stored size in bytes, or `0` when the key does not exist.
+
+---
+
+## `MatrixOS.NVS.delete`
+
+```text
+delete(key: str | int) -> bool
+```
+
+Deletes a value.
+
+**Parameters:**
+
+- `key`: String key or numeric Matrix OS string hash.
+
+**Returns:**
+
+- `bool`: `True` when the value was deleted.
+
+---
+
+## `MatrixOS.NVS.get_bytes`
+
+```text
+get_bytes(key: str | int, default: bytes | None = None) -> bytes | None
+```
+
+Reads raw bytes.
+
+**Parameters:**
+
+- `key`: String key or numeric Matrix OS string hash.
+- `default`: Optional value returned when the key does not exist.
+
+**Returns:**
+
+- `bytes | None`: Stored bytes, default, or `None`.
+
+---
+
+## `MatrixOS.NVS.set_bytes`
+
+```text
+set_bytes(key: str | int, data: bytes) -> bool
+```
+
+Writes raw bytes.
+
+**Parameters:**
+
+- `key`: String key or numeric Matrix OS string hash.
+- `data`: Bytes-like value to store.
+
+**Returns:**
+
+- `bool`: `True` when stored.
+
+---
+
+## `MatrixOS.NVS.get_string`
+
+```text
+get_string(key: str | int, default: str = "") -> str
+```
+
+Reads stored bytes as a string.
+
+**Parameters:**
+
+- `key`: String key or numeric Matrix OS string hash.
+- `default`: String returned when the key does not exist.
+
+**Returns:**
+
+- `str`: Stored string or default.
+
+---
+
+## `MatrixOS.NVS.set_string`
+
+```text
+set_string(key: str | int, value: str) -> bool
+```
+
+Writes a string.
+
+**Parameters:**
+
+- `key`: String key or numeric Matrix OS string hash.
+- `value`: String to store.
+
+**Returns:**
+
+- `bool`: `True` when stored.
+
+## Save A Setting
+
+```python
+import MatrixOS
+
+KEY_BRIGHTNESS = "HelloPython brightness"
+
+# Read the previous value, or use 80 the first time the app runs.
+brightness = MatrixOS.NVS.get(KEY_BRIGHTNESS, 80)
+brightness = min(255, brightness + 10)
+
+# set() returns False if Matrix OS could not store the value.
+if not MatrixOS.NVS.set(KEY_BRIGHTNESS, brightness):
+    print("failed to save brightness")
+```

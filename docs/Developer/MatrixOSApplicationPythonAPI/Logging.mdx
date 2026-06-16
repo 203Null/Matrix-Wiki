@@ -5,14 +5,105 @@ sidebar_position: 8
 
 # Logging API
 
-`MatrixOS.Logging` writes Matrix OS structured log messages.
+## Overview
 
-Methods:
-
-- `error(tag: str, message: str) -> None`
-- `warning(tag: str, message: str) -> None`
-- `info(tag: str, message: str) -> None`
-- `debug(tag: str, message: str) -> None`
-- `verbose(tag: str, message: str) -> None`
+`MatrixOS.Logging` writes Matrix OS structured log messages. Use `print()` for quick Python output while iterating; use `MatrixOS.Logging` when you want messages grouped by tag and severity in Matrix OS logs.
 
 `message` is a normal string, not a printf format string.
+
+```python
+import MatrixOS
+
+MatrixOS.Logging.info("HelloPython", "settings saved")
+MatrixOS.Logging.warning("HelloPython", "storage unavailable")
+```
+
+## `MatrixOS.Logging.error`
+
+```text
+error(tag: str, message: str) -> None
+```
+
+Writes an error-level log message.
+
+**Parameters:**
+
+- `tag`: Short source tag, usually the app or feature name.
+- `message`: Message text.
+
+---
+
+## `MatrixOS.Logging.warning`
+
+```text
+warning(tag: str, message: str) -> None
+```
+
+Writes a warning-level log message.
+
+**Parameters:**
+
+- `tag`: Short source tag, usually the app or feature name.
+- `message`: Message text.
+
+---
+
+## `MatrixOS.Logging.info`
+
+```text
+info(tag: str, message: str) -> None
+```
+
+Writes an info-level log message.
+
+**Parameters:**
+
+- `tag`: Short source tag, usually the app or feature name.
+- `message`: Message text.
+
+---
+
+## `MatrixOS.Logging.debug`
+
+```text
+debug(tag: str, message: str) -> None
+```
+
+Writes a debug-level log message.
+
+**Parameters:**
+
+- `tag`: Short source tag, usually the app or feature name.
+- `message`: Message text.
+
+---
+
+## `MatrixOS.Logging.verbose`
+
+```text
+verbose(tag: str, message: str) -> None
+```
+
+Writes a verbose-level log message.
+
+**Parameters:**
+
+- `tag`: Short source tag, usually the app or feature name.
+- `message`: Message text.
+
+## Log An Exception Path
+
+```python
+import MatrixOS
+
+TAG = "HelloPython"
+
+if not MatrixOS.FileSystem.available():
+    # Use warning for recoverable problems the app can explain to a user.
+    MatrixOS.Logging.warning(TAG, "storage unavailable")
+else:
+    # Use info for normal state changes that are useful while debugging.
+    MatrixOS.Logging.info(TAG, "storage ready")
+```
+
+Keep tags short and stable.

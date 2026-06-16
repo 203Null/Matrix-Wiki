@@ -5,6 +5,8 @@ sidebar_position: 1
 
 # SYS API
 
+## Overview
+
 `MatrixOS.SYS` provides system time, app lifecycle, and system actions.
 
 ```python
@@ -15,21 +17,167 @@ version = MatrixOS.SYS.version()
 print(now, version)
 ```
 
-Methods:
+Standalone Python apps that should keep running define `loop()` in their main file. Matrix OS calls `loop()` repeatedly after the file has loaded. A script with no `loop()` runs once and then exits.
 
-- `millis() -> int`
-- `micros() -> int`
-- `sleep_ms(ms: int) -> None`
-- `task_yield() -> None`
-- `exit_app() -> None`
-- `reboot() -> None`
-- `bootloader() -> None`
-- `open_setting() -> None`
-- `execute_app(app_id: int, args: list[str] = []) -> None`
-- `execute_app(author: str, app_name: str, args: list[str] = []) -> None`
-- `version() -> str`
-- `version_id() -> int`
+## `MatrixOS.SYS.millis`
 
-`task_yield()` is a cooperative yield. Use `sleep_ms()` when the app needs an actual delay.
+```text
+millis() -> int
+```
 
-`reboot()`, `bootloader()`, and `execute_app()` are real lifecycle actions. If they succeed, the current Python app may stop running.
+Returns Matrix OS uptime in milliseconds.
+
+**Returns:**
+
+- `int`: Millisecond tick value.
+
+---
+
+## `MatrixOS.SYS.micros`
+
+```text
+micros() -> int
+```
+
+Returns Matrix OS uptime in microseconds.
+
+**Returns:**
+
+- `int`: Microsecond tick value.
+
+---
+
+## `MatrixOS.SYS.sleep_ms`
+
+```text
+sleep_ms(ms: int) -> None
+```
+
+Delays the current Python app for a fixed number of milliseconds.
+
+**Parameters:**
+
+- `ms`: Delay duration in milliseconds.
+
+Use `sleep_ms()` when you need an actual delay. Normal Python app `loop()` functions do not need to call `task_yield()`; return from `loop()` after the current batch of work instead.
+
+---
+
+## `MatrixOS.SYS.task_yield`
+
+```text
+task_yield() -> None
+```
+
+Cooperatively yields from the current Python app.
+
+Most apps should not call this from `loop()`. Use it only for unusual blocking code that cannot return to Matrix OS promptly.
+
+---
+
+## `MatrixOS.SYS.exit_app`
+
+```text
+exit_app() -> None
+```
+
+Exits the current Python app and returns control to Matrix OS.
+
+```python
+import MatrixOS
+
+# Leave the LEDs in a known state before exiting.
+MatrixOS.LED.clear()
+MatrixOS.LED.update()
+
+# Return control to Matrix OS.
+MatrixOS.SYS.exit_app()
+```
+
+---
+
+## `MatrixOS.SYS.reboot`
+
+```text
+reboot() -> None
+```
+
+Requests a system reboot. If it succeeds, the current Python app stops running.
+
+---
+
+## `MatrixOS.SYS.bootloader`
+
+```text
+bootloader() -> None
+```
+
+Requests bootloader mode. If it succeeds, the current Python app stops running.
+
+---
+
+## `MatrixOS.SYS.open_setting`
+
+```text
+open_setting() -> None
+```
+
+Opens Matrix OS settings. If the app switch succeeds, the current Python app may stop running.
+
+---
+
+## `MatrixOS.SYS.execute_app` (by app ID)
+
+```text
+execute_app(app_id: int) -> None
+```
+
+Launches an app by numeric app ID.
+
+**Parameters:**
+
+- `app_id`: Numeric Matrix OS app ID.
+
+---
+
+## `MatrixOS.SYS.execute_app` (by author and name)
+
+```text
+execute_app(author: str, app_name: str, args: list[str] = []) -> None
+```
+
+Launches an app by author and app name.
+
+**Parameters:**
+
+- `author`: App author string.
+- `app_name`: App name string.
+- `args`: Optional argument list passed to the target app.
+
+---
+
+## `MatrixOS.SYS.version`
+
+```text
+version() -> str
+```
+
+Returns the Matrix OS version string.
+
+**Returns:**
+
+- `str`: Version string.
+
+---
+
+## `MatrixOS.SYS.version_id`
+
+```text
+version_id() -> int
+```
+
+Returns the numeric Matrix OS version ID.
+
+**Returns:**
+
+- `int`: Version ID.

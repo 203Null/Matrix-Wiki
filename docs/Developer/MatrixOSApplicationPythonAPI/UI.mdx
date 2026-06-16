@@ -5,15 +5,9 @@ sidebar_position: 13
 
 # UI API
 
+## Overview
+
 `MatrixOS.UI` exposes common Matrix OS UI utilities and components to Python.
-
-## Utility Functions
-
-- `text_scroll(text: str, color: ColorLike, speed: int = 10, loop: bool = False) -> None`
-- `color_picker(color: ColorLike, shade: bool = True) -> int | None`
-- `number_selector(value: int, color: ColorLike, name: str, lower_limit: int = INT_MIN, upper_limit: int = INT_MAX) -> int`
-
-`color_picker()` returns a packed RGB int when the user confirms, or `None` when the user cancels.
 
 ## Selector Constants
 
@@ -35,98 +29,785 @@ Lit mode constants:
 - `LIT_GREATER_EQUAL_THAN`
 - `LIT_ALWAYS`
 
-## `UI.UI(...)`
+## Utility Methods
+
+### `MatrixOS.UI.text_scroll`
+
+```text
+text_scroll(text: str, color: ColorLike, speed: int = 10, loop: bool = False) -> None
+```
+
+Shows scrolling text.
+
+**Parameters:**
+
+- `text`: Text to show.
+- `color`: Packed RGB integer, RGB tuple, or RGBW tuple.
+- `speed`: Scroll speed.
+- `loop`: Whether the scroll should loop.
+
+---
+
+### `MatrixOS.UI.color_picker`
+
+```text
+color_picker(color: ColorLike, shade: bool = True) -> int | None
+```
+
+Opens the Matrix OS color picker.
+
+**Parameters:**
+
+- `color`: Initial color.
+- `shade`: Whether to show shade controls.
+
+**Returns:**
+
+- `int | None`: Packed RGB color when confirmed, or `None` when cancelled.
+
+---
+
+### `MatrixOS.UI.number_selector`
+
+```text
+number_selector(value: int, color: ColorLike, name: str, lower_limit: int = INT_MIN, upper_limit: int = INT_MAX) -> int
+```
+
+Opens a number selector.
+
+**Parameters:**
+
+- `value`: Initial value.
+- `color`: UI color.
+- `name`: Label shown by the selector.
+- `lower_limit`: Minimum value.
+- `upper_limit`: Maximum value.
+
+**Returns:**
+
+- `int`: Selected value.
+
+## `MatrixOS.UI.UI`
+
+```text
+MatrixOS.UI.UI(name: str = "", color: ColorLike = MatrixOS.Color(255, 255, 255), new_layer: bool = True)
+```
+
+Creates a UI container.
+
+**Parameters:**
+
+- `name`: UI name.
+- `color`: UI accent color.
+- `new_layer`: Whether the UI should create a new LED layer.
+
+### `ui.start`
+
+```text
+start() -> None
+```
+
+Starts the UI and returns after the UI exits.
+
+---
+
+### `ui.exit`
+
+```text
+exit() -> None
+```
+
+Requests the UI to exit.
+
+---
+
+### `ui.close`
+
+```text
+close() -> bool
+```
+
+Releases the native UI object and attached components.
+
+**Returns:**
+
+- `bool`: `True` when closed.
+
+---
+
+### `ui.set_name`
+
+```text
+set_name(name: str) -> None
+```
+
+Sets the UI name.
+
+---
+
+### `ui.set_color`
+
+```text
+set_color(color: ColorLike) -> None
+```
+
+Sets the UI accent color.
+
+---
+
+### `ui.set_new_layer`
+
+```text
+set_new_layer(create: bool) -> None
+```
+
+Controls whether the UI creates a new LED layer.
+
+---
+
+### `ui.allow_exit`
+
+```text
+allow_exit(allow: bool) -> None
+```
+
+Controls whether the user can exit the UI.
+
+---
+
+### `ui.set_fps`
+
+```text
+set_fps(fps: int) -> None
+```
+
+Sets the UI frame rate.
+
+---
+
+### `ui.add`
+
+```text
+add(component, position: tuple[int, int]) -> None
+```
+
+Adds a component at a position.
+
+**Parameters:**
+
+- `component`: `Button`, `Selector`, `Number`, `Toggle`, or `CustomComponent`.
+- `position`: Component origin `(x, y)`.
+
+---
+
+### `ui.clear`
+
+```text
+clear() -> None
+```
+
+Removes all components from the UI.
+
+---
+
+### `ui.set_setup_func`
+
+```text
+set_setup_func(callback) -> None
+```
+
+Sets a callback called when the UI starts. The callback receives no arguments.
+
+---
+
+### `ui.set_loop_func`
+
+```text
+set_loop_func(callback) -> None
+```
+
+Sets a UI loop callback. The callback receives no arguments.
+
+---
+
+### `ui.set_global_loop_func`
+
+```text
+set_global_loop_func(callback) -> None
+```
+
+Sets a global loop callback. The callback receives no arguments.
+
+---
+
+### `ui.set_pre_render_func`
+
+```text
+set_pre_render_func(callback) -> None
+```
+
+Sets a callback called before rendering. The callback receives no arguments.
+
+---
+
+### `ui.set_post_render_func`
+
+```text
+set_post_render_func(callback) -> None
+```
+
+Sets a callback called after rendering. The callback receives no arguments.
+
+---
+
+### `ui.set_end_func`
+
+```text
+set_end_func(callback) -> None
+```
+
+Sets a callback called when the UI ends. The callback receives no arguments.
+
+---
+
+### `ui.set_input_handler`
+
+```text
+set_input_handler(callback) -> None
+```
+
+Sets a callback for input events.
+
+**Callback:**
+
+- Called as `callback(event)`.
+- Return a truthy value to consume the event.
+
+## Simple Settings UI
 
 ```python
 import MatrixOS
 
-ui = MatrixOS.UI.UI("Settings", (0, 255, 255), True)
+KEY_SPEED = "HelloPython speed"
+
+# Create a modal settings UI on its own LED layer.
+settings = MatrixOS.UI.UI("Settings", (0, 255, 255), True)
+
+# An 8x1 selector gives one row of speed choices.
+selector = MatrixOS.UI.Selector((8, 1), 8)
+selector.set_name("Speed")
+selector.set_color((0, 255, 255))
+
+# Restore the last saved value, or use 3 the first time.
+selector.set_value(MatrixOS.NVS.get(KEY_SPEED, 3))
+
+def save_speed(value):
+    # Persist changes immediately when the selector changes.
+    MatrixOS.NVS.set(KEY_SPEED, value)
+
+selector.on_change(save_speed)
+
+# Put the selector on the bottom row and start the UI.
+settings.add(selector, (0, 7))
+settings.start()
 ```
-
-- `start() -> None`
-- `exit() -> None`
-- `close() -> bool`
-- `set_name(name: str) -> None`
-- `set_color(color: ColorLike) -> None`
-- `set_new_layer(create: bool) -> None`
-- `allow_exit(allow: bool) -> None`
-- `set_fps(fps: int) -> None`
-- `add(component, position: Point) -> None`
-- `clear() -> None`
-- `set_setup_func(callback) -> None`
-- `set_loop_func(callback) -> None`
-- `set_global_loop_func(callback) -> None`
-- `set_pre_render_func(callback) -> None`
-- `set_post_render_func(callback) -> None`
-- `set_end_func(callback) -> None`
-- `set_input_handler(callback) -> None`
-
-`set_input_handler(callback)` receives an InputEvent dict. Return a truthy value to consume the event.
 
 ## Shared Component Methods
 
-`Button`, `Selector`, `Number`, `Toggle`, and `CustomComponent` support:
+`Button`, `Selector`, `Number`, `Toggle`, and `CustomComponent` support these methods.
 
-- `close() -> bool`
-- `set_enabled(enabled: bool) -> None`
-- `set_enable_func(callback) -> None`
+### `component.close`
 
-## `UI.Button(...)`
+```text
+close() -> bool
+```
 
-- `set_name(name: str) -> None`
-- `set_color(color: ColorLike) -> None`
-- `set_size(size: Dimension) -> None`
-- `set_color_func(callback) -> None`
-- `on_press(callback) -> None`
-- `on_hold(callback) -> None`
+Closes a component that is not currently attached to a UI.
 
-## `UI.Selector(...)`
+**Returns:**
 
-- `set_value(value: int) -> None`
-- `get_value() -> int`
-- `set_value_func(callback) -> None`
-- `on_change(callback) -> None`
-- `set_dimension(dimension: Dimension) -> None`
-- `set_name(name: str) -> None`
-- `set_count(count: int) -> None`
-- `set_direction(direction: int) -> None`
-- `set_lit_mode(lit_mode: int) -> None`
-- `set_color(color: ColorLike) -> None`
-- `set_color_func(callback) -> None`
-- `set_individual_color_func(callback) -> None`
-- `set_individual_name_func(callback) -> None`
+- `bool`: `True` when closed. Returns `False` if the component is still attached.
 
-## `UI.Number(...)`
+---
 
-- `set_value(value: int) -> None`
-- `get_value() -> int`
-- `set_value_func(callback) -> None`
-- `set_name(name: str) -> None`
-- `set_color(color: ColorLike) -> None`
-- `set_alternative_color(color: ColorLike) -> None`
-- `set_digits(digits: int) -> None`
-- `set_spacing(spacing: int) -> None`
-- `set_color_func(callback) -> None`
+### `component.set_enabled`
 
-## `UI.Toggle(...)`
+```text
+set_enabled(enabled: bool) -> None
+```
 
-- `set_value(value: bool) -> None`
-- `get_value() -> bool`
-- `set_name(name: str) -> None`
-- `set_color(color: ColorLike) -> None`
-- `set_color_func(callback) -> None`
-- `set_size(size: Dimension) -> None`
-- `on_press(callback) -> None`
-- `on_hold(callback) -> None`
+Enables or disables the component.
 
-## `UI.CustomComponent(...)`
+---
 
-Custom components are lightweight Python-defined UI controls for app-specific interactions.
+### `component.set_enable_func`
 
-- `set_size(size: Dimension) -> None`
-- `set_render_func(callback) -> None`
-- `set_key_func(callback) -> None`
+```text
+set_enable_func(callback) -> None
+```
 
-The render callback receives `origin: Point` and can draw with `MatrixOS.LED`.
+Sets a callback that controls whether the component is enabled.
 
-The key callback receives `xy: Point` and `keypad: dict`. `xy` is relative to the component origin. Return a truthy value to consume the event.
+**Callback:**
+
+- Called as `callback()`.
+- Return truthy to enable the component.
+
+## `MatrixOS.UI.Button`
+
+```text
+MatrixOS.UI.Button(name: str = "", color: ColorLike = MatrixOS.Color(255, 255, 255))
+```
+
+Creates a button component.
+
+### `button.set_name`
+
+```text
+set_name(name: str) -> None
+```
+
+Sets the button name.
+
+---
+
+### `button.set_color`
+
+```text
+set_color(color: ColorLike) -> None
+```
+
+Sets the button color.
+
+---
+
+### `button.set_size`
+
+```text
+set_size(size: tuple[int, int]) -> None
+```
+
+Sets the button size.
+
+---
+
+### `button.set_color_func`
+
+```text
+set_color_func(callback) -> None
+```
+
+Sets a dynamic color callback.
+
+**Callback:** Called as `callback()` and should return a color.
+
+---
+
+### `button.on_press`
+
+```text
+on_press(callback) -> None
+```
+
+Sets the press callback.
+
+**Callback:** Called as `callback()`.
+
+---
+
+### `button.on_hold`
+
+```text
+on_hold(callback) -> None
+```
+
+Sets the hold callback.
+
+**Callback:** Called as `callback()`.
+
+## `MatrixOS.UI.Selector`
+
+```text
+MatrixOS.UI.Selector(dimension: tuple[int, int] = (1, 1), count: int = 1)
+```
+
+Creates a selector component.
+
+### `selector.set_value`
+
+```text
+set_value(value: int) -> None
+```
+
+Sets the selected value.
+
+---
+
+### `selector.get_value`
+
+```text
+get_value() -> int
+```
+
+Returns the selected value.
+
+---
+
+### `selector.set_value_func`
+
+```text
+set_value_func(callback) -> None
+```
+
+Sets a dynamic value callback.
+
+**Callback:** Called as `callback()` and should return an integer.
+
+---
+
+### `selector.on_change`
+
+```text
+on_change(callback) -> None
+```
+
+Sets a callback called after the value changes.
+
+**Callback:** Called as `callback(value)`.
+
+---
+
+### `selector.set_dimension`
+
+```text
+set_dimension(dimension: tuple[int, int]) -> None
+```
+
+Sets the selector dimensions.
+
+---
+
+### `selector.set_name`
+
+```text
+set_name(name: str) -> None
+```
+
+Sets the selector name.
+
+---
+
+### `selector.set_count`
+
+```text
+set_count(count: int) -> None
+```
+
+Sets the number of selectable items.
+
+---
+
+### `selector.set_direction`
+
+```text
+set_direction(direction: int) -> None
+```
+
+Sets the selector traversal direction. Use one of the `DIRECTION_*` constants.
+
+---
+
+### `selector.set_lit_mode`
+
+```text
+set_lit_mode(lit_mode: int) -> None
+```
+
+Sets how selector items are lit. Use one of the `LIT_*` constants.
+
+---
+
+### `selector.set_color`
+
+```text
+set_color(color: ColorLike) -> None
+```
+
+Sets the selector color.
+
+---
+
+### `selector.set_color_func`
+
+```text
+set_color_func(callback) -> None
+```
+
+Sets a dynamic selector color callback.
+
+**Callback:** Called as `callback()` and should return a color.
+
+---
+
+### `selector.set_individual_color_func`
+
+```text
+set_individual_color_func(callback) -> None
+```
+
+Sets a per-item color callback.
+
+**Callback:** Called as `callback(index)` and should return a color.
+
+---
+
+### `selector.set_name_func`
+
+```text
+set_name_func(callback) -> None
+```
+
+Sets a per-item name callback.
+
+**Callback:** Called as `callback(index)` and should return a string.
+
+## `MatrixOS.UI.Number`
+
+```text
+MatrixOS.UI.Number(digits: int = 1)
+```
+
+Creates a 4-pixel digit number component.
+
+### `number.set_value`
+
+```text
+set_value(value: int) -> None
+```
+
+Sets the displayed value.
+
+---
+
+### `number.get_value`
+
+```text
+get_value() -> int
+```
+
+Returns the current displayed value.
+
+---
+
+### `number.set_value_func`
+
+```text
+set_value_func(callback) -> None
+```
+
+Sets a dynamic value callback.
+
+**Callback:** Called as `callback()` and should return an integer.
+
+---
+
+### `number.set_name`
+
+```text
+set_name(name: str) -> None
+```
+
+Sets the component name.
+
+---
+
+### `number.set_color`
+
+```text
+set_color(color: ColorLike) -> None
+```
+
+Sets the primary digit color.
+
+---
+
+### `number.set_alternative_color`
+
+```text
+set_alternative_color(color: ColorLike) -> None
+```
+
+Sets the alternate digit color.
+
+---
+
+### `number.set_digits`
+
+```text
+set_digits(digits: int) -> None
+```
+
+Sets the number of displayed digits.
+
+---
+
+### `number.set_spacing`
+
+```text
+set_spacing(spacing: int) -> None
+```
+
+Sets spacing between digits.
+
+---
+
+### `number.set_color_func`
+
+```text
+set_color_func(callback) -> None
+```
+
+Sets a per-digit color callback.
+
+**Callback:** Called as `callback(index)` and should return a color.
+
+## `MatrixOS.UI.Toggle`
+
+```text
+MatrixOS.UI.Toggle(name: str = "", value: bool = False)
+```
+
+Creates a toggle component.
+
+### `toggle.set_value`
+
+```text
+set_value(value: bool) -> None
+```
+
+Sets the toggle value.
+
+---
+
+### `toggle.get_value`
+
+```text
+get_value() -> bool
+```
+
+Returns the toggle value.
+
+---
+
+### `toggle.set_name`
+
+```text
+set_name(name: str) -> None
+```
+
+Sets the toggle name.
+
+---
+
+### `toggle.set_color`
+
+```text
+set_color(color: ColorLike) -> None
+```
+
+Sets the toggle color.
+
+---
+
+### `toggle.set_color_func`
+
+```text
+set_color_func(callback) -> None
+```
+
+Sets a dynamic color callback.
+
+**Callback:** Called as `callback()` and should return a color.
+
+---
+
+### `toggle.set_size`
+
+```text
+set_size(size: tuple[int, int]) -> None
+```
+
+Sets the toggle size.
+
+---
+
+### `toggle.on_press`
+
+```text
+on_press(callback) -> None
+```
+
+Sets the press callback.
+
+**Callback:** Called as `callback(value)` with the new boolean value.
+
+---
+
+### `toggle.on_hold`
+
+```text
+on_hold(callback) -> None
+```
+
+Sets the hold callback.
+
+**Callback:** Called as `callback()`.
+
+## `MatrixOS.UI.CustomComponent`
+
+```text
+MatrixOS.UI.CustomComponent(dimension: tuple[int, int] = (1, 1))
+```
+
+Creates a lightweight Python-defined UI component.
+
+### `custom_component.set_size`
+
+```text
+set_size(size: tuple[int, int]) -> None
+```
+
+Sets the component size.
+
+---
+
+### `custom_component.set_render_func`
+
+```text
+set_render_func(callback) -> None
+```
+
+Sets the render callback.
+
+**Callback:**
+
+- Called as `callback(origin)`.
+- `origin` is the component origin point.
+- Return truthy when the component handled rendering.
+
+---
+
+### `custom_component.set_key_func`
+
+```text
+set_key_func(callback) -> None
+```
+
+Sets the key callback.
+
+**Callback:**
+
+- Called as `callback(xy, keypad)`.
+- `xy` is relative to the component origin.
+- `keypad` has the same shape as `event["keypad"]` from [`MatrixOS.Input`](./Input).
+- Return truthy to consume the event.

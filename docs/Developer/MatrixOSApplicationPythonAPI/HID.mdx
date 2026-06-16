@@ -5,36 +5,311 @@ sidebar_position: 12
 
 # HID API
 
+## Overview
+
 `MatrixOS.HID` exposes keyboard, gamepad, and RawHID helpers.
 
-## `MatrixOS.HID.Keyboard`
+Use `press(...)` and `release(...)` when the key or button should stay active across multiple loop iterations. Use `tap(...)` for a short press-and-release action.
 
-- `tap(keycode: int, length_ms: int = 100) -> bool`
-- `press(keycode: int) -> bool`
-- `release(keycode: int) -> bool`
-- `release_all() -> None`
+## `MatrixOS.HID.Keyboard.tap`
 
-## `MatrixOS.HID.Gamepad`
+```text
+tap(keycode: int, length_ms: int = 100) -> bool
+```
 
-- `tap(button_id: int, length_ms: int = 100) -> None`
-- `press(button_id: int) -> None`
-- `release(button_id: int) -> None`
-- `release_all() -> None`
-- `button(button_id: int, state: bool) -> None`
-- `buttons(button_mask: int) -> None`
-- `x_axis(value: int) -> None`
-- `y_axis(value: int) -> None`
-- `z_axis(value: int) -> None`
-- `rx_axis(value: int) -> None`
-- `ry_axis(value: int) -> None`
-- `rz_axis(value: int) -> None`
-- `dpad(direction: int) -> None`
+Presses and releases one keyboard key.
 
-Axis values use native int16 range: `-32768..32767`. Values outside the range are clamped by the binding.
+**Parameters:**
 
-## `MatrixOS.HID.RawHID`
+- `keycode`: USB HID keyboard keycode.
+- `length_ms`: Press duration in milliseconds.
 
-- `get(timeout_ms: int = 0) -> bytes | None`
-- `send(data: bytes) -> bool`
+**Returns:**
 
-`RawHID.get()` returns `None` when no report is available. When a report is received, it returns the actual report bytes.
+- `bool`: `True` when the tap was sent.
+
+---
+
+## `MatrixOS.HID.Keyboard.press`
+
+```text
+press(keycode: int) -> bool
+```
+
+Presses one keyboard key and leaves it held.
+
+**Parameters:**
+
+- `keycode`: USB HID keyboard keycode.
+
+**Returns:**
+
+- `bool`: `True` when the press was sent.
+
+---
+
+## `MatrixOS.HID.Keyboard.release`
+
+```text
+release(keycode: int) -> bool
+```
+
+Releases one keyboard key.
+
+**Parameters:**
+
+- `keycode`: USB HID keyboard keycode.
+
+**Returns:**
+
+- `bool`: `True` when the release was sent.
+
+---
+
+## `MatrixOS.HID.Keyboard.release_all`
+
+```text
+release_all() -> None
+```
+
+Releases all pressed keyboard keys.
+
+---
+
+## `MatrixOS.HID.Gamepad.tap`
+
+```text
+tap(button_id: int, length_ms: int = 100) -> None
+```
+
+Presses and releases one gamepad button.
+
+**Parameters:**
+
+- `button_id`: Gamepad button ID.
+- `length_ms`: Press duration in milliseconds.
+
+---
+
+## `MatrixOS.HID.Gamepad.press`
+
+```text
+press(button_id: int) -> None
+```
+
+Presses one gamepad button and leaves it held.
+
+**Parameters:**
+
+- `button_id`: Gamepad button ID.
+
+---
+
+## `MatrixOS.HID.Gamepad.release`
+
+```text
+release(button_id: int) -> None
+```
+
+Releases one gamepad button.
+
+**Parameters:**
+
+- `button_id`: Gamepad button ID.
+
+---
+
+## `MatrixOS.HID.Gamepad.release_all`
+
+```text
+release_all() -> None
+```
+
+Releases all gamepad buttons.
+
+---
+
+## `MatrixOS.HID.Gamepad.button`
+
+```text
+button(button_id: int, state: bool) -> None
+```
+
+Sets one gamepad button state.
+
+**Parameters:**
+
+- `button_id`: Gamepad button ID.
+- `state`: `True` for pressed, `False` for released.
+
+---
+
+## `MatrixOS.HID.Gamepad.buttons`
+
+```text
+buttons(button_mask: int) -> None
+```
+
+Sets all gamepad button states from a bitmask.
+
+**Parameters:**
+
+- `button_mask`: Bitmask of pressed buttons.
+
+---
+
+## `MatrixOS.HID.Gamepad.x_axis`
+
+```text
+x_axis(value: int) -> None
+```
+
+Sets the gamepad X axis.
+
+**Parameters:**
+
+- `value`: Axis value. Values are clamped to `-32768..32767`.
+
+---
+
+## `MatrixOS.HID.Gamepad.y_axis`
+
+```text
+y_axis(value: int) -> None
+```
+
+Sets the gamepad Y axis.
+
+**Parameters:**
+
+- `value`: Axis value. Values are clamped to `-32768..32767`.
+
+---
+
+## `MatrixOS.HID.Gamepad.z_axis`
+
+```text
+z_axis(value: int) -> None
+```
+
+Sets the gamepad Z axis.
+
+**Parameters:**
+
+- `value`: Axis value. Values are clamped to `-32768..32767`.
+
+---
+
+## `MatrixOS.HID.Gamepad.rx_axis`
+
+```text
+rx_axis(value: int) -> None
+```
+
+Sets the gamepad RX axis.
+
+**Parameters:**
+
+- `value`: Axis value. Values are clamped to `-32768..32767`.
+
+---
+
+## `MatrixOS.HID.Gamepad.ry_axis`
+
+```text
+ry_axis(value: int) -> None
+```
+
+Sets the gamepad RY axis.
+
+**Parameters:**
+
+- `value`: Axis value. Values are clamped to `-32768..32767`.
+
+---
+
+## `MatrixOS.HID.Gamepad.rz_axis`
+
+```text
+rz_axis(value: int) -> None
+```
+
+Sets the gamepad RZ axis.
+
+**Parameters:**
+
+- `value`: Axis value. Values are clamped to `-32768..32767`.
+
+---
+
+## `MatrixOS.HID.Gamepad.dpad`
+
+```text
+dpad(direction: int) -> None
+```
+
+Sets the gamepad D-pad direction.
+
+**Parameters:**
+
+- `direction`: Gamepad D-pad direction value.
+
+---
+
+## `MatrixOS.HID.RawHID.get`
+
+```text
+get(timeout_ms: int = 0) -> bytes | None
+```
+
+Reads one RawHID report.
+
+**Parameters:**
+
+- `timeout_ms`: Maximum time to wait in milliseconds. `0` is non-blocking.
+
+**Returns:**
+
+- `bytes | None`: Report bytes, or `None` when no report is available.
+
+---
+
+## `MatrixOS.HID.RawHID.send`
+
+```text
+send(data: bytes) -> bool
+```
+
+Sends one RawHID report.
+
+**Parameters:**
+
+- `data`: Report bytes.
+
+**Returns:**
+
+- `bool`: `True` when sent.
+
+## Keyboard And Gamepad Examples
+
+```python
+import MatrixOS
+
+# Tap sends a press and release for a simple one-shot action.
+MatrixOS.HID.Keyboard.tap(0x04)  # HID keycode for "a"
+MatrixOS.HID.Gamepad.tap(1)
+```
+
+## RawHID Echo Example
+
+```python
+import MatrixOS
+
+# Poll once without blocking. Use a timeout if the app should wait.
+report = MatrixOS.HID.RawHID.get(0)
+if report:
+    # Echo the exact report bytes back to the host.
+    MatrixOS.HID.RawHID.send(report)
+```
+
+This echo pattern is useful for a custom host protocol.

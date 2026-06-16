@@ -5,33 +5,51 @@ sidebar_position: 0
 
 # Python API Overview
 
-Python apps use `snake_case` methods under the `MatrixOS` module.
+Python apps import the `MatrixOS` module to draw LEDs, read input, send MIDI, save settings, use files, and open Matrix OS UI utilities.
 
-## Stable Modules
+## What You Will Use Most
 
 | Module | Purpose |
 | --- | --- |
-| [`MatrixOS.SYS`](./SYS) | Time, app lifecycle, reboot/bootloader, settings, version, and app launch helpers. |
-| [`MatrixOS.LED`](./LED) | LED drawing, layers, brightness, and partition queries. |
-| [`MatrixOS.Input`](./Input) | Input events, snapshots, clusters, coordinate lookup, and keypad capabilities. |
-| [`MatrixOS.MIDI`](./MIDI) | `MidiPacket` objects, MIDI receive/send, and SysEx helpers. |
-| [`MatrixOS.HID`](./HID) | Keyboard, gamepad, and RawHID helpers. |
-| [`MatrixOS.USB`](./USB) | USB and CDC status/io helpers. |
-| [`MatrixOS.NVS`](./NVS) | App settings with string keys and advanced typed helpers. |
-| [`MatrixOS.FileSystem`](./FileSystem) | Sandboxed file helpers plus standard `open()` support. |
-| [`MatrixOS.Logging`](./Logging) | Matrix OS structured logging. |
-| [`MatrixOS.UI`](./UI) | Common Matrix OS UI components and utilities. |
-| [`MatrixOS.ColorEffects`](./ColorEffects) | Matrix OS color effect helpers. |
-| [`MatrixOS.Color`](./Color) | Packed color construction. |
-| [`MatrixOS.Timer`](./Timer) | Lightweight loop timing. |
+| [`MatrixOS.LED`](./LED) | Draw to the LED canvas, change brightness, and work with layers. |
+| [`MatrixOS.Input`](./Input) | Read key presses, pressure, velocity, touchbar, and other input events. |
+| [`MatrixOS.MIDI`](./MIDI) | Receive and send MIDI packets. |
+| [`MatrixOS.NVS`](./NVS) | Save app settings. |
+| [`MatrixOS.FileSystem`](./FileSystem) | Read and write files in the app sandbox. |
+| [`MatrixOS.SYS`](./SYS) | Time, app lifecycle, settings, version, reboot, and app launch helpers. |
+| [`MatrixOS.UI`](./UI) | Open common Matrix OS UI utilities such as color pickers and selectors. |
 
-## Naming Rules
+Other modules are available when your app needs them:
 
-- Use `snake_case`: `MatrixOS.LED.set_xy(...)`, `MatrixOS.SYS.execute_app(...)`, `MatrixOS.Input.get_event(...)`.
-- Use tuple points and dimensions: `(x, y)`.
-- Use tuple input IDs: `(cluster_id, member_id)`.
-- Use packed RGB ints or RGB/RGBW tuples for colors.
-- Query APIs return `None`, `False`, `0`, empty bytes, or empty lists when data is unavailable.
+- [`MatrixOS.HID`](./HID) for keyboard, gamepad, and RawHID helpers.
+- [`MatrixOS.USB`](./USB) for USB and CDC helpers.
+- [`MatrixOS.Logging`](./Logging) for Matrix OS logs.
+- [`MatrixOS.ColorEffects`](./ColorEffects), [`MatrixOS.Color`](./Color), and [`MatrixOS.Timer`](./Timer) for color and timing helpers.
+- [`MatrixOS.Utils`](./Utils) for low-level helpers needed only by advanced interop code.
+
+## Values You Will See In Examples
+
+- Colors are usually written as RGB tuples: `(255, 0, 0)`.
+- Points are usually written as `(x, y)`.
+- Input events are dictionaries. For keypad events, use `event.get("point")` and `event.get("keypad")`.
+
+## Runtime Model
+
+- Use the toolkit or REPL for short snippets. Use a folder app with `AppInfo.json` and `main.py` for anything you want to launch from Matrix OS.
+- Top-level code runs when the app starts. If the app should keep running, define `loop()`; Matrix OS calls it repeatedly.
+- Keep long-running apps cooperative. Return from `loop()` quickly after handling the current batch of work. Use `MatrixOS.SYS.sleep_ms(...)` only when the app intentionally needs a timed delay.
+- Organize background behavior inside the Matrix OS app loop instead of relying on desktop-style threads or async frameworks.
+- Put helper `.py` files next to `main.py`; the app folder is added to the Python import path.
+- Use short bounded scripts for smoke tests, then move persistent behavior into a standalone app with `loop()`.
+
+## Third-Party Libraries
+
+- Matrix OS does not install packages for an app at runtime. Bundle the Python files your app needs in the app folder.
+- Pure Python libraries can work when their files fit device storage and runtime memory.
+- Packages that require native desktop extensions are not supported.
+- Do not assume every desktop Python standard-library module is available. Test imports in the toolkit before depending on them.
+- Keep imports small and startup work light; large modules increase launch time and memory pressure.
+- When adapting a desktop Python package, test the smallest useful piece in the toolkit before copying it to hardware.
 
 ## Input Example
 
@@ -39,15 +57,19 @@ Python apps use `snake_case` methods under the `MatrixOS` module.
 import MatrixOS
 
 for _ in range(100):
+    # Wait briefly for one input event. This keeps the snippet bounded
+    # while still giving you time to press a key in the toolkit or on hardware.
     event = MatrixOS.Input.get_event(10)
     if event is None:
-        MatrixOS.SYS.task_yield()
+        # Nothing happened during this poll window.
         continue
 
     keypad = event.get("keypad")
     point = event.get("point")
     if keypad and point and keypad.get("pressed"):
+        # Draw feedback at the key's grid coordinate.
         MatrixOS.LED.set_xy(point[0], point[1], (255, 255, 255), 255)
+        # LED writes are buffered; update() makes the change visible.
         MatrixOS.LED.update(255)
 ```
 
@@ -59,6 +81,8 @@ This bounded loop is useful for quick tests. In a standalone app, put the same e
 import MatrixOS
 
 if MatrixOS.FileSystem.available():
+    # open() is sandboxed the same way as MatrixOS.FileSystem helpers.
+    # This writes to this app's private AppData folder.
     with open("settings.txt", "w") as f:
         f.write("mode=debug\n")
 ```
@@ -66,7 +90,6 @@ if MatrixOS.FileSystem.available():
 ## App Structure Notes
 
 - Use `MatrixOS.Input` for keypad, touchbar, and other input events.
-- Input events and snapshots are dictionaries.
 - Use `MatrixOS.LED.set_xy(...)` or `MatrixOS.LED.set_index(...)` for direct LED writes.
 - Use `MatrixOS.SYS.millis()` for uptime timing.
-- Folder apps use `AppInfo.json` plus `main.py`; single-file snippets are useful for REPL experiments.
+- Folder apps use `AppInfo.json` plus `main.py`; single-file snippets are useful for quick tests.

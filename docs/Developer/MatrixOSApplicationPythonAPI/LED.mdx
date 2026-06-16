@@ -5,55 +5,321 @@ sidebar_position: 4
 
 # LED API
 
-`MatrixOS.LED` draws to the Matrix OS LED system from Python.
+## Overview
 
-## Drawing
+`MatrixOS.LED` draws to the Matrix OS LED system from Python.
 
 ```python
 import MatrixOS
 
+# Clear the current LED layer before drawing a new frame.
 MatrixOS.LED.clear()
+
+# Draw one red LED at grid coordinate (3, 3).
 MatrixOS.LED.set_xy(3, 3, (255, 0, 0))
+
+# Push the buffered LED frame to the device.
 MatrixOS.LED.update()
 ```
 
-Methods:
+Most apps can pass RGB tuples such as `(255, 0, 0)`. Values created with [`MatrixOS.Color`](./Color) are also accepted.
 
-- `clear(layer: int = 255) -> None`
-- `fill(color: ColorLike, layer: int = 255) -> None`
-- `set_xy(x: int, y: int, color: ColorLike, layer: int = 255) -> None`
-- `set_index(index: int, color: ColorLike, layer: int = 255) -> None`
-- `fill_partition(name: str, color: ColorLike, layer: int = 255) -> bool`
-- `update(layer: int = 255) -> None`
+Call `update()` after drawing to show the frame. The default layer value `255` means the current LED layer, which is what most apps should use.
 
-`ColorLike` can be a packed RGB integer or an RGB/RGBW tuple.
+## `MatrixOS.LED.clear`
+
+```text
+clear(layer: int = 255) -> None
+```
+
+Fills the selected layer with black.
+
+**Parameters:**
+
+- `layer`: LED layer to clear. Defaults to the current layer.
+
+---
+
+## `MatrixOS.LED.fill`
+
+```text
+fill(color: ColorLike, layer: int = 255) -> None
+```
+
+Fills the selected layer with one color.
+
+**Parameters:**
+
+- `color`: Packed RGB integer, RGB tuple, or RGBW tuple.
+- `layer`: LED layer to fill. Defaults to the current layer.
+
+---
+
+## `MatrixOS.LED.set_xy`
+
+```text
+set_xy(x: int, y: int, color: ColorLike, layer: int = 255) -> None
+```
+
+Sets the LED at an XY coordinate.
+
+**Parameters:**
+
+- `x`: X coordinate.
+- `y`: Y coordinate.
+- `color`: Packed RGB integer, RGB tuple, or RGBW tuple.
+- `layer`: LED layer to write. Defaults to the current layer.
 
 `set_xy()` uses signed XY coordinates. Mystrix perimeter LEDs can use coordinates such as `x=-1`, `x=8`, `y=-1`, or `y=8`.
 
-## Brightness and Layers
+---
 
-- `next_brightness() -> None`
-- `set_brightness(value: int) -> None`
-- `set_brightness_multiplier(partition: str, multiplier_milli: int) -> bool`
-- `current_layer() -> int`
-- `create_layer(crossfade: int = default) -> int`
-- `copy_layer(dest: int, src: int) -> None`
-- `destroy_layer(crossfade: int = default) -> bool`
-- `fade(crossfade: int = default) -> None`
-- `pause_update(paused: bool = True) -> None`
+## `MatrixOS.LED.set_index`
 
-`set_brightness_multiplier()` uses integer milli-ratio values. `1000` means `1.0`; `500` means `0.5`.
+```text
+set_index(index: int, color: ColorLike, layer: int = 255) -> None
+```
 
-## Partition Queries
+Sets the LED by numeric LED index.
 
-- `count() -> int`
-- `partitions() -> list[dict]`
-- `get_partition(index_or_name: int | str) -> dict | None`
+**Parameters:**
 
-Partition dictionaries include:
+- `index`: LED index.
+- `color`: Packed RGB integer, RGB tuple, or RGBW tuple.
+- `layer`: LED layer to write. Defaults to the current layer.
 
-- `name: str`
-- `start: int`
-- `size: int`
-- `type: int`
-- `default_multiplier: int`
+---
+
+## `MatrixOS.LED.fill_partition`
+
+```text
+fill_partition(name: str, color: ColorLike, layer: int = 255) -> bool
+```
+
+Fills one named LED partition.
+
+**Parameters:**
+
+- `name`: Partition name, such as `"Grid"` or `"Underglow"` on devices that expose those partitions.
+- `color`: Packed RGB integer, RGB tuple, or RGBW tuple.
+- `layer`: LED layer to write. Defaults to the current layer.
+
+**Returns:**
+
+- `bool`: `True` when the partition was found and filled.
+
+---
+
+## `MatrixOS.LED.update`
+
+```text
+update(layer: int = 255) -> None
+```
+
+Pushes the selected LED layer to the device.
+
+**Parameters:**
+
+- `layer`: LED layer to render. Defaults to the current layer.
+
+---
+
+## `MatrixOS.LED.next_brightness`
+
+```text
+next_brightness() -> None
+```
+
+Cycles to the next Matrix OS LED brightness level.
+
+---
+
+## `MatrixOS.LED.set_brightness`
+
+```text
+set_brightness(value: int) -> None
+```
+
+Sets the global LED brightness.
+
+**Parameters:**
+
+- `value`: Brightness value, `0..255`.
+
+---
+
+## `MatrixOS.LED.set_brightness_multiplier`
+
+```text
+set_brightness_multiplier(partition: str, multiplier_milli: int) -> bool
+```
+
+Applies a brightness multiplier to a partition.
+
+**Parameters:**
+
+- `partition`: Partition name.
+- `multiplier_milli`: Integer milli-ratio. `1000` means `1.0`; `500` means `0.5`.
+
+**Returns:**
+
+- `bool`: `True` when the partition was found and updated.
+
+---
+
+## `MatrixOS.LED.current_layer`
+
+```text
+current_layer() -> int
+```
+
+Returns the current LED layer.
+
+**Returns:**
+
+- `int`: Current layer ID.
+
+---
+
+## `MatrixOS.LED.create_layer`
+
+```text
+create_layer(crossfade: int = default) -> int
+```
+
+Creates a new LED layer.
+
+**Parameters:**
+
+- `crossfade`: Optional crossfade duration in milliseconds.
+
+**Returns:**
+
+- `int`: New layer ID, or `-1` if a layer could not be created.
+
+---
+
+## `MatrixOS.LED.copy_layer`
+
+```text
+copy_layer(dest: int, src: int) -> None
+```
+
+Copies one LED layer into another.
+
+**Parameters:**
+
+- `dest`: Destination layer ID.
+- `src`: Source layer ID.
+
+---
+
+## `MatrixOS.LED.destroy_layer`
+
+```text
+destroy_layer(crossfade: int = default) -> bool
+```
+
+Destroys the current LED layer.
+
+**Parameters:**
+
+- `crossfade`: Optional crossfade duration in milliseconds.
+
+**Returns:**
+
+- `bool`: `True` when the layer was destroyed.
+
+---
+
+## `MatrixOS.LED.fade`
+
+```text
+fade(crossfade: int = default) -> None
+```
+
+Starts a fade using the current LED layer state.
+
+**Parameters:**
+
+- `crossfade`: Optional fade duration in milliseconds.
+
+---
+
+## `MatrixOS.LED.pause_update`
+
+```text
+pause_update(paused: bool = True) -> None
+```
+
+Pauses or resumes automatic active-buffer updates.
+
+**Parameters:**
+
+- `paused`: `True` to pause updates, `False` to resume.
+
+---
+
+## `MatrixOS.LED.count`
+
+```text
+count() -> int
+```
+
+Returns the number of addressable LEDs.
+
+**Returns:**
+
+- `int`: LED count.
+
+---
+
+## `MatrixOS.LED.partitions`
+
+```text
+partitions() -> list[dict]
+```
+
+Returns all LED partition descriptors.
+
+**Returns:**
+
+- `list[dict]`: Partition dictionaries with `name`, `start`, `size`, `type`, and `default_multiplier`.
+
+---
+
+## `MatrixOS.LED.get_partition`
+
+```text
+get_partition(index_or_name: int | str) -> dict | None
+```
+
+Returns one LED partition by index or name.
+
+**Parameters:**
+
+- `index_or_name`: Partition index or partition name.
+
+**Returns:**
+
+- `dict | None`: Partition dictionary, or `None` when not found.
+
+## Partition Example
+
+```python
+import MatrixOS
+
+# Not every device has underglow, so query before drawing to it.
+underglow = MatrixOS.LED.get_partition("Underglow")
+if underglow:
+    MatrixOS.LED.fill_partition("Underglow", (0, 0, 255))
+    MatrixOS.LED.update()
+```
+
+Use `partitions()` when an app needs to adapt to different device layouts:
+
+```python
+for partition in MatrixOS.LED.partitions():
+    # Useful when adapting an app to multiple Matrix OS devices.
+    print(partition["name"], partition["start"], partition["size"])
+```

@@ -5,7 +5,11 @@ sidebar_position: 2
 
 # Color API
 
-`MatrixOS.Color(...)` creates a packed RGB integer.
+## Overview
+
+Most LED and UI APIs accept RGB tuples directly, such as `(255, 0, 0)`. Use `MatrixOS.Color(...)` when you want a packed RGB value that can be stored, reused, or passed through code as one integer.
+
+The return value is a packed RGB integer in `0xRRGGBB` form. RGBW input is accepted, but the returned integer stores RGB only; the white channel is not preserved in the return value.
 
 ```python
 import MatrixOS
@@ -15,6 +19,41 @@ green = MatrixOS.Color((0, 255, 0))
 white = MatrixOS.Color(255, 255, 255, 0)
 ```
 
-The current public return value is RGB only, even when RGBW input is accepted.
+## `MatrixOS.Color`
 
-Color values are accepted by LED and UI APIs as packed RGB integers or RGB/RGBW tuples.
+```text
+MatrixOS.Color(value: int | tuple[int, int, int] | tuple[int, int, int, int]) -> int
+MatrixOS.Color(r: int, g: int, b: int, w: int = 0) -> int
+```
+
+Creates a packed RGB color value.
+
+**Parameters:**
+
+- `value`: Existing packed RGB integer, RGB tuple, or RGBW tuple.
+- `r`: Red channel, `0..255`.
+- `g`: Green channel, `0..255`.
+- `b`: Blue channel, `0..255`.
+- `w`: Optional white channel accepted for RGBW input. The packed return value keeps RGB only.
+
+**Returns:**
+
+- `int`: Packed RGB value in `0xRRGGBB` form.
+
+Use RGB tuples for simple one-off LED calls. Use `MatrixOS.Color(...)` when you want to keep a color in a variable, save it in settings, or share the same value between LED, UI, and color-effect code.
+
+## Store A Color
+
+```python
+import MatrixOS
+
+# Store a reusable accent color as one packed integer.
+KEY_ACCENT = "HelloPython accent"
+
+# If the app has never saved the key, default to cyan.
+accent = MatrixOS.NVS.get(KEY_ACCENT, MatrixOS.Color(0, 255, 255))
+
+# LED APIs accept the packed color directly.
+MatrixOS.LED.set_xy(0, 0, accent)
+MatrixOS.LED.update()
+```

@@ -5,7 +5,9 @@ sidebar_position: 3
 
 # Timer API
 
-`MatrixOS.Timer()` creates a lightweight loop timer object.
+## Overview
+
+`MatrixOS.Timer()` creates a lightweight timer for app-loop work. It is useful when an app should do something every few milliseconds without blocking the whole loop.
 
 ```python
 import MatrixOS
@@ -16,11 +18,95 @@ if timer.tick(100):
     print("100 ms tick")
 ```
 
-Methods:
-
-- `tick(ms: int, first_tick: bool = True) -> bool`
-- `is_longer(ms: int) -> bool`
-- `since_last_tick() -> int`
-- `record_current() -> None`
-
 Time values are in milliseconds.
+
+## `MatrixOS.Timer`
+
+```python
+MatrixOS.Timer()
+```
+
+Creates a timer object and records the current Matrix OS time as its starting point.
+
+**Returns:**
+
+- `Timer`: Timer object with the methods below.
+
+---
+
+## `timer.tick`
+
+```text
+tick(ms: int, continuous: bool = False) -> bool
+```
+
+Checks whether at least `ms` milliseconds have passed since the timer's previous recorded tick.
+
+**Parameters:**
+
+- `ms`: Interval in milliseconds.
+- `continuous`: When `False`, record the current time after a tick. When `True`, advance the previous tick by exactly `ms`, which keeps repeating timers steadier.
+
+**Returns:**
+
+- `bool`: `True` when the interval has elapsed and the timer has advanced.
+
+---
+
+## `timer.is_longer`
+
+```text
+is_longer(ms: int) -> bool
+```
+
+Checks whether the timer has been running longer than `ms` milliseconds without changing the recorded time.
+
+**Parameters:**
+
+- `ms`: Duration in milliseconds.
+
+**Returns:**
+
+- `bool`: `True` when the elapsed time is at least `ms`.
+
+---
+
+## `timer.since_last_tick`
+
+```text
+since_last_tick() -> int
+```
+
+Returns the elapsed time since the timer's previous recorded tick.
+
+**Returns:**
+
+- `int`: Elapsed milliseconds.
+
+---
+
+## `timer.record_current`
+
+```text
+record_current() -> None
+```
+
+Records the current Matrix OS time as the timer's previous tick.
+
+## App Loop Example
+
+```python
+import MatrixOS
+
+blink = MatrixOS.Timer()
+on = False
+
+def loop():
+    global on
+
+    # continuous=True keeps the blink interval steady across repeated ticks.
+    if blink.tick(500, True):
+        on = not on
+        MatrixOS.LED.set_xy(0, 0, (0, 255, 255) if on else (0, 0, 0))
+        MatrixOS.LED.update()
+```
