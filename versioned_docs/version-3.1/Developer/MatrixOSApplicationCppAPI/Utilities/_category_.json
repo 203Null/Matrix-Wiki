@@ -1,7 +1,8 @@
 {
-  "label": "Utilities", 
+  "label": "Utilities",
   "position": -99,
   "link": {
     "type": "generated-index"
-  }
+  },
+  "key": "cpp-utilities-3-1"
 }

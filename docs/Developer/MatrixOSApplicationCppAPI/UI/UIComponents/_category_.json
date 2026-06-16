@@ -1,5 +1,6 @@
 {
-  "label": "UI Components", 
+  "label": "UI Components",
+  "key": "cpp-ui-components",
   "position": 1,
   "link": {
     "type": "generated-index"
